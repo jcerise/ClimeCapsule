@@ -1,0 +1,8 @@
+[weather-underground]
+base_url = https://api.weather.com/v2/pws
+api_key = <YOUR_API_KEY>
+station_id = <YOUR_STATION_ID>
+earliest_observation = <EARLIEST_STATION_DATA>
+
+[database]
+db_name = weather_data

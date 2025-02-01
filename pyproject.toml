@@ -1,0 +1,17 @@
+[project]
+name = "clime-capsule"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.13"
+dependencies = [
+    "backoff>=2.2.1",
+    "fastapi>=0.115.7",
+    "fastapi-utils>=0.8.0",
+    "pytest>=8.3.4",
+    "ratelimit>=2.2.1",
+    "requests>=2.32.3",
+    "ruff>=0.9.4",
+    "typing-inspect>=0.9.0",
+    "uvicorn>=0.34.0",
+]
