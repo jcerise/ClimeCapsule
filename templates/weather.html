@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Weather Comparison</title>
+    <!-- Include your CSS file -->
+    <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
+  </head>
+  <body>
+    <div class="container">
+      <!-- Today Column (wider) -->
+      <div class="column today">
+        <h1>Today</h1>
+        <p class="date">{{ today_observation.friendly_date }}</p>
+        <p class="temp">{{ today_observation.temp_avg }}°F</p>
+        <div class="details">
+          <p>High: {{ today_observation.temp_high }}°F</p>
+          <p>Low: {{ today_observation.temp_low }}°F</p>
+          <p>Windchill High: {{ today_observation.wind_chill_high }}°F</p>
+          <p>Windchill Low: {{ today_observation.wind_chill_low }}°F</p>
+          <p>Precip Rate: {{ today_observation.precip_rate }} in/hr</p>
+          <p>Precip Total: {{ today_observation.precip_avg }} in</p>
+        </div>
+      </div>
+
+      <!-- Last Year Column -->
+      <div class="column last-year">
+        <h2>Last Year</h2>
+        <p class="date">{{ historical_comparisons[0].friendly_date }}</p>
+        <p class="temp">{{ historical_comparisons[0].temp_avg }}°F</p>
+        <div class="details">
+          <p>High: {{ historical_comparisons[0].temp_high }}°F</p>
+          <p>Low: {{ historical_comparisons[0].temp_low }}°F</p>
+          <p>Windchill High: {{ historical_comparisons[0].wind_chill_high }}°F</p>
+          <p>Windchill Low: {{ historical_comparisons[0].wind_chill_low }}°F</p>
+          <p>Precip Rate: {{ historical_comparisons[0].precip_rate }} in/hr</p>
+          <p>Precip Total: {{ historical_comparisons[0].precip_avg }} in</p>
+        </div>
+      </div>
+
+      <!-- Two Years Ago Column -->
+      <div class="column two-years-ago">
+        <h2>Two Years Ago</h2>
+        <p class="date">{{ historical_comparisons[1].friendly_date }}</p>
+        <p class="temp">{{ historical_comparisons[1].temp_avg }}°F</p>
+        <div class="details">
+          <p>High: {{ historical_comparisons[1].temp_high }}°F</p>
+          <p>Low: {{ historical_comparisons[1].temp_low }}°F</p>
+          <p>Windchill High: {{ historical_comparisons[1].wind_chill_high }}°F</p>
+          <p>Windchill Low: {{ historical_comparisons[1].wind_chill_low }}°F</p>
+          <p>Precip Rate: {{ historical_comparisons[1].precip_rate }} in/hr</p>
+          <p>Precip Total: {{ historical_comparisons[1].precip_avg }} in</p>
+        </div>
+      </div>
+    </div>
+  </body>
+</html>

@@ -14,6 +14,7 @@ from weather.db import WeatherDB
 class DailyObservation(BaseModel):
     station_id: str
     obs_time_local: str
+    friendly_date: str
     temp_high: float
     temp_low: float
     temp_avg: float
@@ -98,60 +99,64 @@ class ClimeCapsule:
         precip_rate_avg: float = 0
         observation_count: int = 0
 
-        # Grab the station ID and observation time (date) from the first observation
-        # These will remain the same across all observations, since this list represents
-        # a single station on a single day
-        dt: datetime = datetime.strptime(observations[-1]["obsTimeLocal"], "%Y-%m-%d %H:%M:%S")
-        date_str: str = dt.strftime("%Y-%m-%d")
-        station_id: str = observations[0]["stationID"]
+        if len(observations) != 0:
+            # Grab the station ID and observation time (date) from the first observation
+            # These will remain the same across all observations, since this list represents
+            # a single station on a single day
+            dt: datetime = datetime.strptime(observations[-1]["obsTimeLocal"], "%Y-%m-%d %H:%M:%S")
+            date_str: str = dt.strftime("%Y-%m-%d")
+            station_id: str = observations[0]["stationID"]
 
-        for obs in observations:
-            if obs["imperial"]["tempHigh"] > high_temp:
-                high_temp = obs["imperial"]["tempHigh"]
+            for obs in observations:
+                if obs["imperial"]["tempHigh"] > high_temp:
+                    high_temp = obs["imperial"]["tempHigh"]
 
-            if obs["imperial"]["tempLow"] < low_temp:
-                low_temp = obs["imperial"]["tempLow"]
+                if obs["imperial"]["tempLow"] < low_temp:
+                    low_temp = obs["imperial"]["tempLow"]
 
-            total_avg_temp += obs["imperial"]["tempAvg"]
+                total_avg_temp += obs["imperial"]["tempAvg"]
 
-            if obs["imperial"]["windspeedHigh"] > high_windspeed:
-                high_windspeed = obs["imperial"]["windspeedHigh"]
+                if obs["imperial"]["windspeedHigh"] > high_windspeed:
+                    high_windspeed = obs["imperial"]["windspeedHigh"]
 
-            if obs["imperial"]["windspeedLow"] < low_windspeed:
-                low_windspeed = obs["imperial"]["windspeedLow"]
+                if obs["imperial"]["windspeedLow"] < low_windspeed:
+                    low_windspeed = obs["imperial"]["windspeedLow"]
 
-            total_avg_windspeed += obs["imperial"]["windspeedAverage"]
+                total_avg_windspeed += obs["imperial"]["windspeedAverage"]
 
-            if obs["imperial"]["windchillHigh"] > high_wind_chill:
-                high_wind_chill = obs["imperial"]["windchillHigh"]
+                if obs["imperial"]["windchillHigh"] > high_wind_chill:
+                    high_wind_chill = obs["imperial"]["windchillHigh"]
 
-            if obs["imperial"]["windchillLow"] < low_wind_chill:
-                low_wind_chill = obs["imperial"]["windchillLow"]
+                if obs["imperial"]["windchillLow"] < low_wind_chill:
+                    low_wind_chill = obs["imperial"]["windchillLow"]
 
-            total_avg_windchill += obs["imperial"]["windchillAverage"]
+                total_avg_windchill += obs["imperial"]["windchillAverage"]
 
-            if obs["imperial"]["precipRate"] > high_precip_rate:
-                high_precip_rate = obs["imperial"]["precipRate"]
+                if obs["imperial"]["precipRate"] > high_precip_rate:
+                    high_precip_rate = obs["imperial"]["precipRate"]
 
-            precip_rate_avg += obs["imperial"]["precipAverage"]
-            observation_count += 1
+                precip_rate_avg += obs["imperial"]["precipAverage"]
+                observation_count += 1
 
-        # Create and return a new DailyObservation object from the compiled data
-        return DailyObservation(
-            station_id=station_id,
-            obs_time_local=date_str,
-            temp_high=high_temp,
-            temp_low=low_temp,
-            temp_avg=round(total_avg_temp / observation_count, 2),
-            windspeed_high=high_windspeed,
-            windspeed_low=low_windspeed,
-            windspeed_avg=round(total_avg_windspeed / observation_count, 2),
-            wind_chill_high=high_wind_chill,
-            wind_chill_low=low_wind_chill,
-            wind_chill_avg=round(total_avg_windchill / observation_count, 2),
-            precip_rate=high_precip_rate,
-            precip_avg=round(precip_rate_avg / observation_count, 2)
-        )
+            # Create and return a new DailyObservation object from the compiled data
+            return DailyObservation(
+                station_id=station_id,
+                obs_time_local=date_str,
+                friendly_date=dt.strftime("%B %d, %Y"),
+                temp_high=high_temp,
+                temp_low=low_temp,
+                temp_avg=round(total_avg_temp / observation_count, 2),
+                windspeed_high=high_windspeed,
+                windspeed_low=low_windspeed,
+                windspeed_avg=round(total_avg_windspeed / observation_count, 2),
+                wind_chill_high=high_wind_chill,
+                wind_chill_low=low_wind_chill,
+                wind_chill_avg=round(total_avg_windchill / observation_count, 2),
+                precip_rate=high_precip_rate,
+                precip_avg=round(precip_rate_avg / observation_count, 2)
+            )
+        else:
+            return DailyObservation()
 
     def fetch_historical_hourly_data(self, start_date: str, end_date: str | None) -> List[Dict]:
         """

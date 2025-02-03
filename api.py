@@ -4,6 +4,10 @@ from typing import List, Dict
 
 from fastapi import FastAPI, HTTPException, APIRouter, Depends
 from fastapi_utils.cbv import cbv
+from fastapi import Request
+from starlette.responses import HTMLResponse
+from starlette.staticfiles import StaticFiles
+from starlette.templating import Jinja2Templates
 
 from weather.clime_capsule import ClimeCapsule, DailyObservation
 
@@ -14,6 +18,8 @@ async def lifespan(app: FastAPI):
     controller.init_db()
     yield
 app = FastAPI(lifespan=lifespan)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 router = APIRouter()
 
 def get_controller() -> ClimeCapsule:
@@ -23,9 +29,13 @@ def get_controller() -> ClimeCapsule:
 class ClimeCapsuleAPI:
     controller: ClimeCapsule = Depends(get_controller)
 
-    @router.get("/")
-    async def root(self):
-        return {"message": "Welcome to ClimeCapsule"}
+    @router.get("/", response_class=HTMLResponse)
+    async def root(self, request: Request):
+        data = {
+            "message": "Hello from FastAPI!",
+            "title": "My FastAPI Page"
+        }
+        return templates.TemplateResponse("index.html", {"request": request, "data": data})
 
     @router.get("/health")
     async def health(self):
@@ -76,8 +86,8 @@ class ClimeCapsuleAPI:
 
         return {"date": date_str, "observation": daily_observation}
 
-    @router.get("/today_plus_history")
-    async def today_plus_history(self, years_back: int = 2):
+    @router.get("/today_plus_history", response_class=HTMLResponse)
+    async def today_plus_history(self, request: Request, years_back: int = 2):
         today = datetime.today()
         today_str = today.strftime("%Y-%m-%d")
 
@@ -92,7 +102,7 @@ class ClimeCapsuleAPI:
         current_observation: DailyObservation = self.controller.compile_daily_data(
             self.controller.db.query_by_date(today_str))
 
-        historical_summaries = {}
+        historical_summaries = []
         for i in range(1, years_back + 1):
             # Same day in the past (i years ago)
             past_year = today.year - i
@@ -106,16 +116,22 @@ class ClimeCapsuleAPI:
 
             past_date_str = past_date.strftime("%Y-%m-%d")
             summary = self.controller.compile_daily_data(self.controller.db.query_by_date(past_date_str))
-            if summary:
-                historical_summaries[str(past_year)] = summary
-            else:
-                historical_summaries[str(past_year)] = None
+            # The daily summary will always return a DailyObservation object, but it may be empty if no data for this
+            # date was found. This will ensure our template never breaks, though
+            historical_summaries.append(summary)
 
-        return {
+        weather_data = {
             "today": today_str,
             "today_observation": current_observation,
             "historical_comparisons": historical_summaries
         }
+        return templates.TemplateResponse(
+            "weather.html",
+            {
+                "request": request,
+                **weather_data
+            }
+        )
 
 app.include_router(router)
 

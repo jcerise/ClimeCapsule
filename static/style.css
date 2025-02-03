@@ -1,0 +1,88 @@
+/* Basic reset */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+/* Body settings:
+   - 800x480 is the target "canvas" size
+   - But you can also let it flex if you prefer */
+body {
+  width: 800px;
+  height: 480px;
+  margin: 0 auto;
+  font-family: Arial, sans-serif;
+  background-color: #f2f2f2; /* Light background; can change if desired */
+}
+
+/* Container to hold all columns in a row */
+.container {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+
+/* Shared column styling */
+.column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding: 10px;
+  border-right: 1px solid #ccc;
+}
+
+.column:last-child {
+  border-right: none; /* remove border on last column */
+}
+
+/* Specific column widths */
+.today {
+  flex: 2; /* Wider */
+  background-color: #eaf7ff; /* Subtle blue hue */
+}
+
+.last-year,
+.two-years-ago {
+  flex: 1; /* Narrower columns */
+}
+
+/* Example backgrounds (you can tweak these) */
+.last-year {
+  background-color: #fff7e6; /* Subtle orange/pastel */
+}
+.two-years-ago {
+  background-color: #fafae6; /* Subtle yellow/pastel */
+}
+
+/* Headers */
+.today h1,
+.last-year h2,
+.two-years-ago h2 {
+  margin-bottom: 4px;
+  color: #333;
+}
+
+/* Date styling under headers */
+.date {
+  font-size: 1.2rem;
+  font-weight: bold;
+  margin-bottom: 12px;
+  color: #555;
+}
+
+/* Temperature styling (shown prominently) */
+.temp {
+  font-size: 3rem;
+  font-weight: bold;
+  margin-bottom: 12px;
+  color: #000; /* Black text stands out on e-paper */
+}
+
+/* The smaller details for high/low/windchill/precip */
+.details p {
+  margin: 32px 0; /* Increase the vertical spacing */
+  font-size: 1rem;
+  color: #444;
+}
