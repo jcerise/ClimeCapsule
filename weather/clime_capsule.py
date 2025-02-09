@@ -1,6 +1,6 @@
 import configparser
 import os
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import List, Dict
 
 import requests
@@ -82,7 +82,7 @@ class ClimeCapsule:
         return data.get("observations", [])
 
     @staticmethod
-    def compile_daily_data(observations: List[Dict]) -> DailyObservation:
+    def compile_daily_data(observations: List[Dict], through: int|None) -> DailyObservation:
         # Iterate over the list of daily observations (each representing an hour)
         # and average them out into a single daily observation
 
@@ -108,6 +108,13 @@ class ClimeCapsule:
             station_id: str = observations[0]["stationID"]
 
             for obs in observations:
+                # If we only want to compile through a certain time (for more accurate comparison to the current
+                # observations), break if we find an observation beyond the time we care about
+                observation_time: datetime = datetime.strptime(obs["obsTimeLocal"], "%Y-%m-%d %H:%M:%S")
+                if through is not None:
+                    if observation_time.hour > through:
+                        continue
+
                 if obs["imperial"]["tempHigh"] > high_temp:
                     high_temp = obs["imperial"]["tempHigh"]
 
@@ -206,6 +213,8 @@ class ClimeCapsule:
 
         url = f"{self.base_url}{endpoint}"
 
+        now = datetime.now(timezone.utc).replace(tzinfo=None)
+
         params = {
             "apiKey": self.wu_api_key,
             "stationId": self.wu_station_id,
@@ -214,8 +223,11 @@ class ClimeCapsule:
             "date": datetime.today().strftime("%Y-%m-%d").replace("-", "")
         }
 
-        data: List = self.make_api_call(url, params)
-        observations.extend(data)
+        try:
+            data: List = self.make_api_call(url, params)
+            observations.extend(data)
+        except Exception as e:
+            print("Error occurred")
 
         return observations
 

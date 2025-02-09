@@ -56,7 +56,7 @@ class ClimeCapsuleAPI:
         # so, this can result in impartial data if called mid day, and complete observations when called at end of day)
         # Note, this is rate limited to 30 calls every 60 seconds
         # observations = self.controller.fetch_current_data()
-        observations = self.controller.fetch_historical_hourly_data("2025-01-26")
+        observations = self.controller.fetch_current_data()
 
         # Attempt to write this observation to the DB
         # This may raise a DB integrity error, in which case, we already have this observation, so we'll just
@@ -92,15 +92,25 @@ class ClimeCapsuleAPI:
         today_str = today.strftime("%Y-%m-%d")
 
         # Attempt to get the most recent hourly data
-        hourly_observations = self.controller.fetch_current_hourly_data()
-        if not hourly_observations:
-            raise HTTPException(status_code=404, detail="No data found for provided date.")
-        # Write the most recent observations for today to the DB
-        # This will not write duplicates, so depending on when this is called, we may or may not write any data
-        self.controller.db.insert_observations(hourly_observations)
+        # Because of how WU stores data in UTC, but accesses it in local time, we cannot retrieve hourly data
+        # past 5pm MST (because we would have to pass in tomorrow's date, which will error out).
+        # So, if it is past 5pm MST, grab the current conditions from the weather station and use those
+        if today.hour < 17:
+            hourly_observations = self.controller.fetch_current_hourly_data()
+            if not hourly_observations:
+                raise HTTPException(status_code=404, detail="No data found for provided date.")
+            # Write the most recent observations for today to the DB
+            # This will not write duplicates, so depending on when this is called, we may or may not write any data
+            self.controller.db.insert_observations(hourly_observations)
+        else:
+            print("Past 5PM MST, fetching current data...")
+            current = self.controller.fetch_current_data()
+            if not current:
+                raise HTTPException(status_code=404, detail="No data found for current conditions.")
+            self.controller.db.insert_current_observations(current)
         # Grab the latest daily data from the DB
         current_observation: DailyObservation = self.controller.compile_daily_data(
-            self.controller.db.query_by_date(today_str))
+            self.controller.db.query_by_date(today_str), None)
 
         historical_summaries = []
         for i in range(1, years_back + 1):
@@ -115,7 +125,7 @@ class ClimeCapsuleAPI:
                 past_date = today.replace(year=past_year, day=28)
 
             past_date_str = past_date.strftime("%Y-%m-%d")
-            summary = self.controller.compile_daily_data(self.controller.db.query_by_date(past_date_str))
+            summary = self.controller.compile_daily_data(self.controller.db.query_by_date(past_date_str), through=today.hour)
             # The daily summary will always return a DailyObservation object, but it may be empty if no data for this
             # date was found. This will ensure our template never breaks, though
             historical_summaries.append(summary)

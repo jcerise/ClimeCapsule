@@ -83,6 +83,56 @@ class WeatherDB:
         conn.commit()
         conn.close()
 
+    def insert_current_observations(self, observations):
+        """
+        Insert a list of observation records into the database.
+        `observations` should be a list of dicts with the relevant keys.
+        """
+        conn = sqlite3.connect(self.db_file)
+        c = conn.cursor()
+
+        for obs in observations:
+            try:
+                c.execute("""
+                    INSERT INTO weather_data (
+                        station_id, 
+                        obs_time_local, 
+                        temperature_high, 
+                        temperature_low, 
+                        temperature_average, 
+                        humidity, 
+                        wind_speed_high,
+                        wind_speed_low,
+                        wind_speed_average,
+                        windchill_high,
+                        windchill_low,
+                        windchill_average,
+                        precip_rate, 
+                        precip_total
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    obs["stationID"],
+                    obs["obsTimeLocal"],
+                    obs.get("imperial", {}).get("temp", None),
+                    obs.get("imperial", {}).get("temp", None),
+                    obs.get("imperial", {}).get("temp", None),
+                    obs.get("humidity", None),
+                    obs.get("imperial", {}).get("windSpeed", None),
+                    obs.get("imperial", {}).get("windSpeed", None),
+                    obs.get("imperial", {}).get("windSpeed", None),
+                    obs.get("imperial", {}).get("windChill", None),
+                    obs.get("imperial", {}).get("windChill", None),
+                    obs.get("imperial", {}).get("windChill", None),
+                    obs.get("imperial", {}).get("precipRate", None),
+                    obs.get("imperial", {}).get("precipTotal", None)
+                ))
+            except sqlite3.IntegrityError:
+                # A uniqueness constraint is in violation, print a friendly message and move on
+                print(f"Entry for {obs['stationID']} at {obs['obsTimeLocal']} already exists. Skipping.")
+
+        conn.commit()
+        conn.close()
+
     def query_by_date(self, date_str: str) -> List[dict]:
         conn = sqlite3.connect(self.db_file)
         cursor = conn.cursor()
