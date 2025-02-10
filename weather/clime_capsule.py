@@ -212,9 +212,6 @@ class ClimeCapsule:
         endpoint: str = "/history/hourly"
 
         url = f"{self.base_url}{endpoint}"
-
-        now = datetime.now(timezone.utc).replace(tzinfo=None)
-
         params = {
             "apiKey": self.wu_api_key,
             "stationId": self.wu_station_id,
@@ -223,11 +220,8 @@ class ClimeCapsule:
             "date": datetime.today().strftime("%Y-%m-%d").replace("-", "")
         }
 
-        try:
-            data: List = self.make_api_call(url, params)
-            observations.extend(data)
-        except Exception as e:
-            print("Error occurred")
+        data: List = self.make_api_call(url, params)
+        observations.extend(data)
 
         return observations
 
