@@ -97,7 +97,6 @@ class ClimeCapsuleAPI:
         # So, if it is past 5pm MST, grab the current conditions from the weather station and use those
         print("Fetching hourly data...")
         hourly_observations = self.controller.fetch_current_hourly_data()
-        print(hourly_observations)
         if not hourly_observations:
             raise HTTPException(status_code=404, detail="No data found for provided date.")
         # Write the most recent observations for today to the DB
