@@ -95,21 +95,20 @@ class ClimeCapsuleAPI:
         # Because of how WU stores data in UTC, but accesses it in local time, we cannot retrieve hourly data
         # past 5pm MST (because we would have to pass in tomorrow's date, which will error out).
         # So, if it is past 5pm MST, grab the current conditions from the weather station and use those
-        # if today.hour <= 17:
-        #     print("Fetching hourly data...")
-        #     hourly_observations = self.controller.fetch_current_hourly_data()
-        #     print(hourly_observations)
-        #     if not hourly_observations:
-        #         raise HTTPException(status_code=404, detail="No data found for provided date.")
-        #     # Write the most recent observations for today to the DB
-        #     # This will not write duplicates, so depending on when this is called, we may or may not write any data
-        #     self.controller.db.insert_observations(hourly_observations)
+        print("Fetching hourly data...")
+        hourly_observations = self.controller.fetch_current_hourly_data()
+        print(hourly_observations)
+        if not hourly_observations:
+            raise HTTPException(status_code=404, detail="No data found for provided date.")
+        # Write the most recent observations for today to the DB
+        # This will not write duplicates, so depending on when this is called, we may or may not write any data
+        self.controller.db.insert_observations(hourly_observations)
         # else:
-        print("Fetching current weather data...")
-        current = self.controller.fetch_current_data()
-        if not current:
-            raise HTTPException(status_code=404, detail="No data found for current conditions.")
-        self.controller.db.insert_current_observations(current)
+        # print("Fetching current weather data...")
+        # current = self.controller.fetch_current_data()
+        # if not current:
+        #     raise HTTPException(status_code=404, detail="No data found for current conditions.")
+        # self.controller.db.insert_current_observations(current)
         # Grab the latest daily data from the DB
         current_observation: DailyObservation = self.controller.compile_daily_data(
             self.controller.db.query_by_date(today_str), None)
