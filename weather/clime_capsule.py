@@ -12,20 +12,20 @@ from weather.db import WeatherDB
 
 
 class DailyObservation(BaseModel):
-    station_id: str
-    obs_time_local: str
-    friendly_date: str
-    temp_high: float
-    temp_low: float
-    temp_avg: float
-    windspeed_high: float
-    windspeed_low: float
-    windspeed_avg: float
-    wind_chill_high: float
-    wind_chill_low: float
-    wind_chill_avg: float
-    precip_rate: float
-    precip_avg: float
+    station_id: str = ""
+    obs_time_local: str = ""
+    friendly_date: str = ""
+    temp_high: float = 0.0
+    temp_low: float = 0.0
+    temp_avg: float = 0.0
+    windspeed_high: float = 0.0
+    windspeed_low: float = 0.0
+    windspeed_avg: float = 0.0
+    wind_chill_high: float = 0.0
+    wind_chill_low: float = 0.0
+    wind_chill_avg: float = 0.0
+    precip_rate: float = 0.0
+    precip_avg: float = 0.0
 
 
 def singleton(cls):
