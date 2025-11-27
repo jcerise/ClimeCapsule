@@ -3,188 +3,79 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=800, height=480" />
-    <title>Weather Dashboard</title>
+    <title>Weather</title>
     <link rel="stylesheet" href="{{ url_for('static', path='style.css') }}">
   </head>
   <body>
     <div class="container">
-      <!-- Button Indicator Strip -->
+      <!-- Button Strip -->
       <div class="button-strip">
-        <div class="button-icon active">🏠</div>
-        <div class="button-icon">💧</div>
-        <div class="button-icon">🌡</div>
+        <div class="button-icon active">H</div>
+        <div class="button-icon">P</div>
+        <div class="button-icon">T</div>
         <div class="button-icon empty"></div>
       </div>
 
-      <!-- Today Column -->
+      <!-- Today -->
       <div class="column today">
         <div class="column-header">
           <h2>Today</h2>
-          <span class="year-badge">{{ today_observation.friendly_date[:4] if today_observation.friendly_date else 'NOW' }}</span>
         </div>
-        <p class="date truncate">{{ today_observation.friendly_date }}</p>
+        <div class="date">{{ today_observation.friendly_date }}</div>
 
-        <!-- Temperature Section -->
-        <div class="metric-section temp">
-          <div class="metric-header">
-            <span class="icon icon-temp"></span>
-            <span>Temperature</span>
-          </div>
-          <div class="primary-value">
-            {{ "%.1f"|format(today_observation.temp_avg) }}<span class="unit">°F</span>
-          </div>
-          <div class="highlow-row">
-            <span class="highlow-item">
-              <span class="icon icon-high"></span>
-              <span class="value">{{ "%.1f"|format(today_observation.temp_high) }}°</span>
-            </span>
-            <span class="highlow-item">
-              <span class="icon icon-low"></span>
-              <span class="value">{{ "%.1f"|format(today_observation.temp_low) }}°</span>
-            </span>
-          </div>
+        <div class="temp-main">
+          <div class="avg">{{ "%.0f"|format(today_observation.temp_avg) }}°</div>
+          <div class="range">H: {{ "%.0f"|format(today_observation.temp_high) }}° / L: {{ "%.0f"|format(today_observation.temp_low) }}°</div>
         </div>
 
-        <!-- Wind Section -->
-        <div class="metric-section wind">
-          <div class="metric-header">
-            <span class="icon icon-wind"></span>
-            <span>Wind</span>
-          </div>
-          <div class="primary-value">
-            {{ "%.1f"|format(today_observation.windspeed_avg) }}<span class="unit">mph</span>
-          </div>
-          <div class="highlow-row">
-            <span class="highlow-item">
-              <span class="icon icon-high"></span>
-              <span class="value">{{ "%.1f"|format(today_observation.windspeed_high) }}</span>
-            </span>
-            <span class="highlow-item">
-              <span class="icon icon-low"></span>
-              <span class="value">{{ "%.1f"|format(today_observation.windspeed_low) }}</span>
-            </span>
-          </div>
-          <div class="comparison-bar">
-            <div class="bar-fill" style="width: {{ [[today_observation.windspeed_avg * 100 / 50, 100]|min, 0]|max }}%"></div>
-          </div>
+        <div class="metric-row">
+          <span class="label">Wind</span>
+          <span class="value">{{ "%.0f"|format(today_observation.windspeed_avg) }} mph</span>
         </div>
-
-        <!-- Precipitation Section -->
-        <div class="metric-section precip">
-          <div class="metric-header">
-            <span class="icon icon-precip"></span>
-            <span>Precipitation</span>
-          </div>
-          <div class="primary-value">
-            {{ "%.2f"|format(today_observation.precip_avg) }}<span class="unit">in</span>
-          </div>
-          <div class="secondary-metrics">
-            <div class="secondary-item">
-              <span class="label">Rate</span>
-              <span class="value">{{ "%.2f"|format(today_observation.precip_rate) }} in/hr</span>
-            </div>
-          </div>
-          <div class="comparison-bar">
-            <div class="bar-fill" style="width: {{ [[today_observation.precip_avg * 100 / 2, 100]|min, 0]|max }}%"></div>
-          </div>
+        <div class="metric-row">
+          <span class="label">Wind High</span>
+          <span class="value">{{ "%.0f"|format(today_observation.windspeed_high) }} mph</span>
+        </div>
+        <div class="metric-row">
+          <span class="label">Precipitation</span>
+          <span class="value">{{ "%.2f"|format(today_observation.precip_avg) }} in</span>
+        </div>
+        <div class="metric-row">
+          <span class="label">Precip Rate</span>
+          <span class="value">{{ "%.2f"|format(today_observation.precip_rate) }} in/hr</span>
         </div>
 
         <div class="footer">Updated hourly</div>
       </div>
 
       {% for hist in historical_comparisons %}
-      <!-- Historical Column {{ loop.index }} -->
+      <!-- {{ loop.index }} Year Ago -->
       <div class="column historical">
         <div class="column-header">
           <h2>{{ loop.index }} Year{% if loop.index > 1 %}s{% endif %} Ago</h2>
-          <span class="year-badge">{{ hist.friendly_date[:4] if hist.friendly_date else '---' }}</span>
         </div>
-        <p class="date truncate">{{ hist.friendly_date }}</p>
+        <div class="date">{{ hist.friendly_date }}</div>
 
-        <!-- Temperature Section -->
-        <div class="metric-section temp">
-          <div class="metric-header">
-            <span class="icon icon-temp"></span>
-            <span>Temperature</span>
-          </div>
-          <div class="primary-value">
-            {{ "%.1f"|format(hist.temp_avg) }}<span class="unit">°F</span>
-          </div>
-          <div class="highlow-row">
-            <span class="highlow-item">
-              <span class="icon icon-high"></span>
-              <span class="value">{{ "%.1f"|format(hist.temp_high) }}°</span>
-            </span>
-            <span class="highlow-item">
-              <span class="icon icon-low"></span>
-              <span class="value">{{ "%.1f"|format(hist.temp_low) }}°</span>
-            </span>
-          </div>
+        <div class="temp-main">
+          <div class="avg">{{ "%.0f"|format(hist.temp_avg) }}°</div>
+          <div class="range">H: {{ "%.0f"|format(hist.temp_high) }}° / L: {{ "%.0f"|format(hist.temp_low) }}°</div>
         </div>
 
-        <!-- Wind Section -->
-        <div class="metric-section wind">
-          <div class="metric-header">
-            <span class="icon icon-wind"></span>
-            <span>Wind</span>
-          </div>
-          <div class="primary-value">
-            {{ "%.1f"|format(hist.windspeed_avg) }}<span class="unit">mph</span>
-          </div>
-          <div class="highlow-row">
-            <span class="highlow-item">
-              <span class="icon icon-high"></span>
-              <span class="value">{{ "%.1f"|format(hist.windspeed_high) }}</span>
-            </span>
-            <span class="highlow-item">
-              <span class="icon icon-low"></span>
-              <span class="value">{{ "%.1f"|format(hist.windspeed_low) }}</span>
-            </span>
-          </div>
-          <div class="comparison-bar">
-            <div class="bar-fill" style="width: {{ [[hist.windspeed_avg * 100 / 50, 100]|min, 0]|max }}%"></div>
-          </div>
+        <div class="metric-row">
+          <span class="label">Wind</span>
+          <span class="value">{{ "%.0f"|format(hist.windspeed_avg) }} mph</span>
         </div>
-
-        <!-- Precipitation Section -->
-        <div class="metric-section precip">
-          <div class="metric-header">
-            <span class="icon icon-precip"></span>
-            <span>Precipitation</span>
-          </div>
-          <div class="primary-value">
-            {{ "%.2f"|format(hist.precip_avg) }}<span class="unit">in</span>
-          </div>
-          <div class="secondary-metrics">
-            <div class="secondary-item">
-              <span class="label">Rate</span>
-              <span class="value">{{ "%.2f"|format(hist.precip_rate) }} in/hr</span>
-            </div>
-          </div>
-          <div class="comparison-bar">
-            <div class="bar-fill" style="width: {{ [[hist.precip_avg * 100 / 2, 100]|min, 0]|max }}%"></div>
-          </div>
+        <div class="metric-row">
+          <span class="label">Wind High</span>
+          <span class="value">{{ "%.0f"|format(hist.windspeed_high) }} mph</span>
         </div>
-
-        <!-- Wind Chill Section -->
-        <div class="metric-section windchill">
-          <div class="metric-header">
-            <span class="icon icon-windchill"></span>
-            <span>Feels Like</span>
-          </div>
-          <div class="primary-value">
-            {{ "%.1f"|format(hist.wind_chill_avg) }}<span class="unit">°F</span>
-          </div>
-          <div class="highlow-row">
-            <span class="highlow-item">
-              <span class="icon icon-high"></span>
-              <span class="value">{{ "%.1f"|format(hist.wind_chill_high) }}°</span>
-            </span>
-            <span class="highlow-item">
-              <span class="icon icon-low"></span>
-              <span class="value">{{ "%.1f"|format(hist.wind_chill_low) }}°</span>
-            </span>
-          </div>
+        <div class="metric-row">
+          <span class="label">Precipitation</span>
+          <span class="value">{{ "%.2f"|format(hist.precip_avg) }} in</span>
+        </div>
+        <div class="metric-row">
+          <span class="label">Feels Like</span>
+          <span class="value">{{ "%.0f"|format(hist.wind_chill_avg) }}°</span>
         </div>
       </div>
       {% endfor %}

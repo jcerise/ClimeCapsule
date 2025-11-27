@@ -3,9 +3,9 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=800, height=480" />
-    <title>Weather Dashboard Preview</title>
+    <title>Weather Preview</title>
     <style>
-/* Reset and full-page setup for e-ink display */
+/* Minimalist e-ink display styles */
 *, *::before, *::after {
   box-sizing: border-box;
 }
@@ -15,8 +15,8 @@ html, body {
   padding: 0;
   width: 800px;
   height: 480px;
-  font-family: 'Segoe UI', Arial, sans-serif;
-  background-color: #fff;
+  font-family: Arial, sans-serif;
+  background: #fff;
   overflow: hidden;
 }
 
@@ -25,557 +25,243 @@ html, body {
   display: flex;
   width: 100%;
   height: 100%;
-  background: #fff;
 }
 
-/* Button indicator strip on left */
+/* Button strip - simplified */
 .button-strip {
-  width: 40px;
-  min-width: 40px;
+  width: 32px;
+  min-width: 32px;
   height: 100%;
-  background: #333;
+  background: #000;
   display: flex;
   flex-direction: column;
   justify-content: space-around;
   align-items: center;
-  padding: 20px 0;
+  padding: 30px 0;
 }
 
 .button-icon {
-  width: 28px;
-  height: 28px;
+  width: 20px;
+  height: 20px;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 20px;
-  color: #fff;
-  background: rgba(255,255,255,0.15);
-  border-radius: 6px;
-}
-
-.button-icon.empty {
-  background: transparent;
+  font-size: 12px;
+  font-weight: bold;
+  color: #666;
 }
 
 .button-icon.active {
-  background: #1976d2;
-}
-
-/* Column base styling */
-.column {
-  display: flex;
-  flex-direction: column;
-  padding: 12px;
-  overflow: hidden;
-}
-
-/* Today column - wider with accent color */
-.today {
-  flex: 1.2;
-  background: linear-gradient(180deg, #e3f2fd 0%, #fff 100%);
-  border-right: 3px solid #1976d2;
-}
-
-/* Historical columns */
-.historical {
-  flex: 1;
-  background: #fafafa;
-  border-right: 1px solid #ddd;
-}
-
-.historical:last-child {
-  border-right: none;
-}
-
-/* Column headers */
-.column-header {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin-bottom: 8px;
-  padding-bottom: 6px;
-  border-bottom: 2px solid currentColor;
-}
-
-.today .column-header {
-  color: #1565c0;
-  border-color: #1565c0;
-}
-
-.historical .column-header {
-  color: #e65100;
-  border-color: #ff9800;
-}
-
-.historical:last-child .column-header {
-  color: #827717;
-  border-color: #c0ca33;
-}
-
-.column-header h2 {
-  margin: 0;
-  font-size: 1rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.column-header .year-badge {
-  font-size: 0.75rem;
-  padding: 2px 6px;
-  border-radius: 3px;
-  background: currentColor;
   color: #fff;
 }
 
-.today .year-badge { background: #1565c0; }
-.historical .year-badge { background: #e65100; }
-.historical:last-child .year-badge { background: #827717; }
+.button-icon.empty {
+  visibility: hidden;
+}
 
-/* Date display */
+/* Columns */
+.column {
+  display: flex;
+  flex-direction: column;
+  padding: 16px 20px;
+  border-right: 2px solid #000;
+}
+
+.column:last-child {
+  border-right: none;
+}
+
+.today {
+  flex: 1.2;
+}
+
+.historical {
+  flex: 1;
+}
+
+/* Headers */
+.column-header h2 {
+  margin: 0 0 4px 0;
+  font-size: 1rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Date */
 .date {
   font-size: 0.85rem;
-  color: #666;
-  margin-bottom: 10px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: #000;
+  font-weight: bold;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #000;
 }
 
-/* Metric sections */
-.metric-section {
-  margin-bottom: 10px;
-  padding: 8px;
-  background: rgba(255,255,255,0.8);
-  border-radius: 6px;
-  border-left: 3px solid #ddd;
+/* Main temperature display */
+.temp-main {
+  text-align: center;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid #ccc;
 }
 
-.metric-section.temp { border-left-color: #f44336; }
-.metric-section.wind { border-left-color: #2196f3; }
-.metric-section.precip { border-left-color: #4caf50; }
-.metric-section.windchill { border-left-color: #9c27b0; }
-
-/* Metric header with icon */
-.metric-header {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  margin-bottom: 6px;
-  font-size: 0.7rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  color: #888;
-  letter-spacing: 0.5px;
-}
-
-/* Weather icons using CSS shapes */
-.icon {
-  width: 16px;
-  height: 16px;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 14px;
-}
-
-.icon-temp::before { content: "🌡"; }
-.icon-wind::before { content: "💨"; }
-.icon-precip::before { content: "💧"; }
-.icon-windchill::before { content: "🥶"; }
-.icon-high::before { content: "▲"; color: #d32f2f; }
-.icon-low::before { content: "▼"; color: #1976d2; }
-
-/* Primary value display */
-.primary-value {
-  font-size: 2.2rem;
-  font-weight: 700;
-  color: #212121;
+.temp-main .avg {
+  font-size: 3.2rem;
+  font-weight: bold;
   line-height: 1;
-  margin-bottom: 4px;
 }
 
-.today .primary-value {
-  font-size: 2.8rem;
+.today .temp-main .avg {
+  font-size: 4rem;
 }
 
-.unit {
-  font-size: 0.5em;
-  font-weight: 400;
-  color: #666;
-  vertical-align: super;
-}
-
-/* High/Low row */
-.highlow-row {
-  display: flex;
-  gap: 12px;
-  font-size: 0.85rem;
-  color: #555;
-}
-
-.highlow-item {
-  display: flex;
-  align-items: center;
-  gap: 3px;
-}
-
-.highlow-item .value {
-  font-weight: 600;
-}
-
-/* Comparison bar */
-.comparison-bar {
-  height: 6px;
-  background: #e0e0e0;
-  border-radius: 3px;
+.temp-main .range {
+  font-size: 1rem;
+  color: #000;
   margin-top: 6px;
-  overflow: hidden;
-  position: relative;
 }
 
-.bar-fill {
-  height: 100%;
-  border-radius: 3px;
-  transition: width 0.3s;
-}
-
-.wind .bar-fill { background: linear-gradient(90deg, #81d4fa, #0277bd); }
-.precip .bar-fill { background: linear-gradient(90deg, #a5d6a7, #2e7d32); }
-
-/* Secondary metrics grid */
-.secondary-metrics {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 4px;
-  font-size: 0.75rem;
-  color: #666;
-}
-
-.secondary-item {
+/* Metric rows */
+.metric-row {
   display: flex;
   justify-content: space-between;
-  padding: 2px 0;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid #ddd;
 }
 
-.secondary-item .label {
-  color: #888;
+.metric-row:last-child {
+  border-bottom: none;
 }
 
-.secondary-item .value {
-  font-weight: 600;
-  color: #444;
+.metric-row .label {
+  font-size: 0.9rem;
+  color: #000;
 }
 
-/* Footer/timestamp */
+.metric-row .value {
+  font-size: 1.1rem;
+  font-weight: bold;
+}
+
+.today .metric-row .label {
+  font-size: 1rem;
+}
+
+.today .metric-row .value {
+  font-size: 1.3rem;
+}
+
+/* Footer */
 .footer {
   margin-top: auto;
-  padding-top: 6px;
-  font-size: 0.65rem;
-  color: #999;
-  text-align: center;
-  border-top: 1px solid #eee;
-}
-
-/* Responsive text handling */
-.truncate {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-/* Compact mode for smaller metrics in historical columns */
-.historical .metric-section {
-  padding: 6px;
-  margin-bottom: 8px;
-}
-
-.historical .primary-value {
-  font-size: 1.8rem;
-}
-
-.historical .highlow-row {
-  font-size: 0.75rem;
-}
-
-.historical .secondary-metrics {
+  padding-top: 8px;
   font-size: 0.7rem;
+  color: #000;
+  text-align: center;
 }
     </style>
   </head>
   <body>
     <div class="container">
-      <!-- Button Indicator Strip -->
+      <!-- Button Strip -->
       <div class="button-strip">
-        <div class="button-icon active">🏠</div>
-        <div class="button-icon">💧</div>
-        <div class="button-icon">🌡</div>
+        <div class="button-icon active">H</div>
+        <div class="button-icon">P</div>
+        <div class="button-icon">T</div>
         <div class="button-icon empty"></div>
       </div>
 
-      <!-- Today Column -->
+      <!-- Today -->
       <div class="column today">
         <div class="column-header">
           <h2>Today</h2>
-          <span class="year-badge">2025</span>
         </div>
-        <p class="date truncate">November 26, 2025</p>
+        <div class="date">November 26, 2025</div>
 
-        <!-- Temperature Section -->
-        <div class="metric-section temp">
-          <div class="metric-header">
-            <span class="icon icon-temp"></span>
-            <span>Temperature</span>
-          </div>
-          <div class="primary-value">
-            42.5<span class="unit">°F</span>
-          </div>
-          <div class="highlow-row">
-            <span class="highlow-item">
-              <span class="icon icon-high"></span>
-              <span class="value">48.2°</span>
-            </span>
-            <span class="highlow-item">
-              <span class="icon icon-low"></span>
-              <span class="value">35.1°</span>
-            </span>
-          </div>
+        <div class="temp-main">
+          <div class="avg">43°</div>
+          <div class="range">H: 48° / L: 35°</div>
         </div>
 
-        <!-- Wind Section -->
-        <div class="metric-section wind">
-          <div class="metric-header">
-            <span class="icon icon-wind"></span>
-            <span>Wind</span>
-          </div>
-          <div class="primary-value">
-            8.3<span class="unit">mph</span>
-          </div>
-          <div class="highlow-row">
-            <span class="highlow-item">
-              <span class="icon icon-high"></span>
-              <span class="value">15.2</span>
-            </span>
-            <span class="highlow-item">
-              <span class="icon icon-low"></span>
-              <span class="value">2.1</span>
-            </span>
-          </div>
-          <div class="comparison-bar">
-            <div class="bar-fill" style="width: 17%"></div>
-          </div>
+        <div class="metric-row">
+          <span class="label">Wind</span>
+          <span class="value">8 mph</span>
         </div>
-
-        <!-- Precipitation Section -->
-        <div class="metric-section precip">
-          <div class="metric-header">
-            <span class="icon icon-precip"></span>
-            <span>Precipitation</span>
-          </div>
-          <div class="primary-value">
-            0.12<span class="unit">in</span>
-          </div>
-          <div class="secondary-metrics">
-            <div class="secondary-item">
-              <span class="label">Rate</span>
-              <span class="value">0.02 in/hr</span>
-            </div>
-          </div>
-          <div class="comparison-bar">
-            <div class="bar-fill" style="width: 6%"></div>
-          </div>
+        <div class="metric-row">
+          <span class="label">Wind High</span>
+          <span class="value">15 mph</span>
+        </div>
+        <div class="metric-row">
+          <span class="label">Precipitation</span>
+          <span class="value">0.12 in</span>
+        </div>
+        <div class="metric-row">
+          <span class="label">Precip Rate</span>
+          <span class="value">0.02 in/hr</span>
         </div>
 
         <div class="footer">Updated hourly</div>
       </div>
 
-      <!-- Historical Column 1 -->
+      <!-- 1 Year Ago -->
       <div class="column historical">
         <div class="column-header">
           <h2>1 Year Ago</h2>
-          <span class="year-badge">2024</span>
         </div>
-        <p class="date truncate">November 26, 2024</p>
+        <div class="date">November 26, 2024</div>
 
-        <!-- Temperature Section -->
-        <div class="metric-section temp">
-          <div class="metric-header">
-            <span class="icon icon-temp"></span>
-            <span>Temperature</span>
-          </div>
-          <div class="primary-value">
-            38.7<span class="unit">°F</span>
-          </div>
-          <div class="highlow-row">
-            <span class="highlow-item">
-              <span class="icon icon-high"></span>
-              <span class="value">44.1°</span>
-            </span>
-            <span class="highlow-item">
-              <span class="icon icon-low"></span>
-              <span class="value">31.5°</span>
-            </span>
-          </div>
+        <div class="temp-main">
+          <div class="avg">39°</div>
+          <div class="range">H: 44° / L: 32°</div>
         </div>
 
-        <!-- Wind Section -->
-        <div class="metric-section wind">
-          <div class="metric-header">
-            <span class="icon icon-wind"></span>
-            <span>Wind</span>
-          </div>
-          <div class="primary-value">
-            12.1<span class="unit">mph</span>
-          </div>
-          <div class="highlow-row">
-            <span class="highlow-item">
-              <span class="icon icon-high"></span>
-              <span class="value">22.4</span>
-            </span>
-            <span class="highlow-item">
-              <span class="icon icon-low"></span>
-              <span class="value">4.3</span>
-            </span>
-          </div>
-          <div class="comparison-bar">
-            <div class="bar-fill" style="width: 24%"></div>
-          </div>
+        <div class="metric-row">
+          <span class="label">Wind</span>
+          <span class="value">12 mph</span>
         </div>
-
-        <!-- Precipitation Section -->
-        <div class="metric-section precip">
-          <div class="metric-header">
-            <span class="icon icon-precip"></span>
-            <span>Precipitation</span>
-          </div>
-          <div class="primary-value">
-            0.45<span class="unit">in</span>
-          </div>
-          <div class="secondary-metrics">
-            <div class="secondary-item">
-              <span class="label">Rate</span>
-              <span class="value">0.08 in/hr</span>
-            </div>
-          </div>
-          <div class="comparison-bar">
-            <div class="bar-fill" style="width: 23%"></div>
-          </div>
+        <div class="metric-row">
+          <span class="label">Wind High</span>
+          <span class="value">22 mph</span>
         </div>
-
-        <!-- Wind Chill Section -->
-        <div class="metric-section windchill">
-          <div class="metric-header">
-            <span class="icon icon-windchill"></span>
-            <span>Feels Like</span>
-          </div>
-          <div class="primary-value">
-            29.3<span class="unit">°F</span>
-          </div>
-          <div class="highlow-row">
-            <span class="highlow-item">
-              <span class="icon icon-high"></span>
-              <span class="value">35.8°</span>
-            </span>
-            <span class="highlow-item">
-              <span class="icon icon-low"></span>
-              <span class="value">22.1°</span>
-            </span>
-          </div>
+        <div class="metric-row">
+          <span class="label">Precipitation</span>
+          <span class="value">0.45 in</span>
+        </div>
+        <div class="metric-row">
+          <span class="label">Feels Like</span>
+          <span class="value">29°</span>
         </div>
       </div>
 
-      <!-- Historical Column 2 -->
+      <!-- 2 Years Ago -->
       <div class="column historical">
         <div class="column-header">
           <h2>2 Years Ago</h2>
-          <span class="year-badge">2023</span>
         </div>
-        <p class="date truncate">November 26, 2023</p>
+        <div class="date">November 26, 2023</div>
 
-        <!-- Temperature Section -->
-        <div class="metric-section temp">
-          <div class="metric-header">
-            <span class="icon icon-temp"></span>
-            <span>Temperature</span>
-          </div>
-          <div class="primary-value">
-            51.2<span class="unit">°F</span>
-          </div>
-          <div class="highlow-row">
-            <span class="highlow-item">
-              <span class="icon icon-high"></span>
-              <span class="value">58.6°</span>
-            </span>
-            <span class="highlow-item">
-              <span class="icon icon-low"></span>
-              <span class="value">42.8°</span>
-            </span>
-          </div>
+        <div class="temp-main">
+          <div class="avg">51°</div>
+          <div class="range">H: 59° / L: 43°</div>
         </div>
 
-        <!-- Wind Section -->
-        <div class="metric-section wind">
-          <div class="metric-header">
-            <span class="icon icon-wind"></span>
-            <span>Wind</span>
-          </div>
-          <div class="primary-value">
-            5.4<span class="unit">mph</span>
-          </div>
-          <div class="highlow-row">
-            <span class="highlow-item">
-              <span class="icon icon-high"></span>
-              <span class="value">11.2</span>
-            </span>
-            <span class="highlow-item">
-              <span class="icon icon-low"></span>
-              <span class="value">0.8</span>
-            </span>
-          </div>
-          <div class="comparison-bar">
-            <div class="bar-fill" style="width: 11%"></div>
-          </div>
+        <div class="metric-row">
+          <span class="label">Wind</span>
+          <span class="value">5 mph</span>
         </div>
-
-        <!-- Precipitation Section -->
-        <div class="metric-section precip">
-          <div class="metric-header">
-            <span class="icon icon-precip"></span>
-            <span>Precipitation</span>
-          </div>
-          <div class="primary-value">
-            0.00<span class="unit">in</span>
-          </div>
-          <div class="secondary-metrics">
-            <div class="secondary-item">
-              <span class="label">Rate</span>
-              <span class="value">0.00 in/hr</span>
-            </div>
-          </div>
-          <div class="comparison-bar">
-            <div class="bar-fill" style="width: 0%"></div>
-          </div>
+        <div class="metric-row">
+          <span class="label">Wind High</span>
+          <span class="value">11 mph</span>
         </div>
-
-        <!-- Wind Chill Section -->
-        <div class="metric-section windchill">
-          <div class="metric-header">
-            <span class="icon icon-windchill"></span>
-            <span>Feels Like</span>
-          </div>
-          <div class="primary-value">
-            48.7<span class="unit">°F</span>
-          </div>
-          <div class="highlow-row">
-            <span class="highlow-item">
-              <span class="icon icon-high"></span>
-              <span class="value">55.2°</span>
-            </span>
-            <span class="highlow-item">
-              <span class="icon icon-low"></span>
-              <span class="value">40.1°</span>
-            </span>
-          </div>
+        <div class="metric-row">
+          <span class="label">Precipitation</span>
+          <span class="value">0.00 in</span>
+        </div>
+        <div class="metric-row">
+          <span class="label">Feels Like</span>
+          <span class="value">49°</span>
         </div>
       </div>
     </div>
