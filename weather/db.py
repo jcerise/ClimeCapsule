@@ -133,6 +133,34 @@ class WeatherDB:
         conn.commit()
         conn.close()
 
+    def sum_daily_precipitation(self, start_date: datetime, end_date: datetime) -> float:
+        """
+        Sum of per-day MAX(precip_total) across the inclusive date range
+        [start_date, end_date]. Returns 0.0 if end_date < start_date or no
+        matching observations exist. Missing days within the range are simply
+        absent from the sum (no fallback / no interpolation).
+        """
+        if end_date < start_date:
+            return 0.0
+
+        conn = sqlite3.connect(self.db_file)
+        cursor = conn.cursor()
+
+        start_ts = start_date.strftime("%Y-%m-%d 00:00:00")
+        end_ts = (end_date + timedelta(days=1)).strftime("%Y-%m-%d 00:00:00")
+
+        cursor.execute("""
+            SELECT COALESCE(SUM(daily_max), 0.0) FROM (
+                SELECT MAX(precip_total) AS daily_max
+                FROM weather_data
+                WHERE obs_time_local >= ? AND obs_time_local < ?
+                GROUP BY DATE(obs_time_local)
+            )
+        """, (start_ts, end_ts))
+        result = cursor.fetchone()[0]
+        conn.close()
+        return result or 0.0
+
     def query_by_date(self, date_str: str) -> List[dict]:
         conn = sqlite3.connect(self.db_file)
         cursor = conn.cursor()
@@ -184,7 +212,7 @@ class WeatherDB:
                     "windchillLow": row[10],
                     "windchillAverage": row[11],
                     "precipRate": row[12],
-                    "precipAverage": row[13]
+                    "precipTotal": row[13]
                 },
             })
         return observations

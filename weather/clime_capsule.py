@@ -25,7 +25,8 @@ class DailyObservation(BaseModel):
     wind_chill_low: float = 0.0
     wind_chill_avg: float = 0.0
     precip_rate: float = 0.0
-    precip_avg: float = 0.0
+    precip_total: float = 0.0
+    precip_ytd: float = 0.0
 
 
 def singleton(cls):
@@ -96,7 +97,7 @@ class ClimeCapsule:
         low_wind_chill: float = 150
         total_avg_windchill: float = 0
         high_precip_rate: float = 0
-        precip_rate_avg: float = 0
+        max_precip_total: float = 0
         observation_count: int = 0
 
         if len(observations) != 0:
@@ -142,7 +143,8 @@ class ClimeCapsule:
                 if obs["imperial"]["precipRate"] > high_precip_rate:
                     high_precip_rate = obs["imperial"]["precipRate"]
 
-                precip_rate_avg += obs["imperial"]["precipAverage"]
+                if obs["imperial"]["precipTotal"] > max_precip_total:
+                    max_precip_total = obs["imperial"]["precipTotal"]
                 observation_count += 1
 
             # Create and return a new DailyObservation object from the compiled data
@@ -160,10 +162,22 @@ class ClimeCapsule:
                 wind_chill_low=low_wind_chill,
                 wind_chill_avg=round(total_avg_windchill / observation_count, 2),
                 precip_rate=high_precip_rate,
-                precip_avg=round(precip_rate_avg / observation_count, 2)
+                precip_total=round(max_precip_total, 2)
             )
         else:
             return DailyObservation()
+
+    def get_ytd_precipitation(self, target_date: datetime, target_day_total: float) -> float:
+        """
+        Year-to-date total precipitation, in inches, accumulated from Jan 1 of
+        target_date.year through target_date. The caller supplies target_day_total
+        — the (possibly hour-truncated) precip_total for target_date itself, which
+        has already been computed by compile_daily_data — so we don't redo that work.
+        """
+        year_start = datetime(target_date.year, 1, 1)
+        day_before_target = target_date - timedelta(days=1)
+        complete_days_total = self.db.sum_daily_precipitation(year_start, day_before_target)
+        return round(complete_days_total + target_day_total, 2)
 
     def fetch_historical_hourly_data(self, start_date: str, end_date: str | None) -> List[Dict]:
         """

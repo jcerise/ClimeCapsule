@@ -111,6 +111,9 @@ class ClimeCapsuleAPI:
         # Grab the latest daily data from the DB
         current_observation: DailyObservation = self.controller.compile_daily_data(
             self.controller.db.query_by_date(today_str), None)
+        current_observation.precip_ytd = self.controller.get_ytd_precipitation(
+            today, current_observation.precip_total
+        )
 
         historical_summaries = []
         for i in range(1, years_back + 1):
@@ -126,6 +129,9 @@ class ClimeCapsuleAPI:
 
             past_date_str = past_date.strftime("%Y-%m-%d")
             summary = self.controller.compile_daily_data(self.controller.db.query_by_date(past_date_str), through=today.hour)
+            summary.precip_ytd = self.controller.get_ytd_precipitation(
+                past_date, summary.precip_total
+            )
             # The daily summary will always return a DailyObservation object, but it may be empty if no data for this
             # date was found. This will ensure our template never breaks, though
             historical_summaries.append(summary)

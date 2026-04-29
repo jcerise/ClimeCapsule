@@ -37,12 +37,16 @@
           <span class="value">{{ "%.0f"|format(today_observation.windspeed_high) }} mph</span>
         </div>
         <div class="metric-row">
-          <span class="label">Precipitation</span>
-          <span class="value">{{ "%.2f"|format(today_observation.precip_avg) }} in</span>
+          <span class="label">Total Precip</span>
+          <span class="value">{{ "%.2f"|format(today_observation.precip_total) }} in</span>
         </div>
         <div class="metric-row">
           <span class="label">Precip Rate</span>
           <span class="value">{{ "%.2f"|format(today_observation.precip_rate) }} in/hr</span>
+        </div>
+        <div class="metric-row">
+          <span class="label">YTD</span>
+          <span class="value">{{ "%.2f"|format(today_observation.precip_ytd) }} in</span>
         </div>
 
         <div class="footer">Updated hourly</div>
@@ -70,8 +74,12 @@
           <span class="value">{{ "%.0f"|format(hist.windspeed_high) }} mph</span>
         </div>
         <div class="metric-row">
-          <span class="label">Precipitation</span>
-          <span class="value">{{ "%.2f"|format(hist.precip_avg) }} in</span>
+          <span class="label">Total Precip</span>
+          <span class="value">{{ "%.2f"|format(hist.precip_total) }} in</span>
+        </div>
+        <div class="metric-row">
+          <span class="label">YTD</span>
+          <span class="value">{{ "%.2f"|format(hist.precip_ytd) }} in</span>
         </div>
         <div class="metric-row">
           <span class="label">Feels Like</span>
