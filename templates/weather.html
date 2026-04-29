@@ -73,19 +73,23 @@
         <div class="metric-section precip">
           <div class="metric-header">
             <span class="icon icon-precip"></span>
-            <span>Precipitation</span>
+            <span>Total Precip</span>
           </div>
           <div class="primary-value">
-            {{ "%.2f"|format(today_observation.precip_avg) }}<span class="unit">in</span>
+            {{ "%.2f"|format(today_observation.precip_total) }}<span class="unit">in</span>
           </div>
           <div class="secondary-metrics">
             <div class="secondary-item">
               <span class="label">Rate</span>
               <span class="value">{{ "%.2f"|format(today_observation.precip_rate) }} in/hr</span>
             </div>
+            <div class="secondary-item">
+              <span class="label">YTD</span>
+              <span class="value">{{ "%.2f"|format(today_observation.precip_ytd) }} in</span>
+            </div>
           </div>
           <div class="comparison-bar">
-            <div class="bar-fill" style="width: {{ [100, today_observation.precip_avg * 100 / 2]|min|max(0) }}%"></div>
+            <div class="bar-fill" style="width: {{ [100, today_observation.precip_total * 100 / 2]|min|max(0) }}%"></div>
           </div>
         </div>
 
@@ -150,19 +154,23 @@
         <div class="metric-section precip">
           <div class="metric-header">
             <span class="icon icon-precip"></span>
-            <span>Precipitation</span>
+            <span>Total Precip</span>
           </div>
           <div class="primary-value">
-            {{ "%.2f"|format(hist.precip_avg) }}<span class="unit">in</span>
+            {{ "%.2f"|format(hist.precip_total) }}<span class="unit">in</span>
           </div>
           <div class="secondary-metrics">
             <div class="secondary-item">
               <span class="label">Rate</span>
               <span class="value">{{ "%.2f"|format(hist.precip_rate) }} in/hr</span>
             </div>
+            <div class="secondary-item">
+              <span class="label">YTD</span>
+              <span class="value">{{ "%.2f"|format(hist.precip_ytd) }} in</span>
+            </div>
           </div>
           <div class="comparison-bar">
-            <div class="bar-fill" style="width: {{ [100, hist.precip_avg * 100 / 2]|min|max(0) }}%"></div>
+            <div class="bar-fill" style="width: {{ [100, hist.precip_total * 100 / 2]|min|max(0) }}%"></div>
           </div>
         </div>
 
