@@ -65,7 +65,7 @@
             </span>
           </div>
           <div class="comparison-bar">
-            <div class="bar-fill" style="width: {{ [100, today_observation.windspeed_avg * 100 / 50]|min|max(0) }}%"></div>
+            <div class="bar-fill" style="width: {{ [0, [100, today_observation.windspeed_avg * 100 / 50]|min]|max }}%"></div>
           </div>
         </div>
 
@@ -89,7 +89,7 @@
             </div>
           </div>
           <div class="comparison-bar">
-            <div class="bar-fill" style="width: {{ [100, today_observation.precip_total * 100 / 2]|min|max(0) }}%"></div>
+            <div class="bar-fill" style="width: {{ [0, [100, today_observation.precip_total * 100 / 2]|min]|max }}%"></div>
           </div>
         </div>
 
@@ -146,7 +146,7 @@
             </span>
           </div>
           <div class="comparison-bar">
-            <div class="bar-fill" style="width: {{ [100, hist.windspeed_avg * 100 / 50]|min|max(0) }}%"></div>
+            <div class="bar-fill" style="width: {{ [0, [100, hist.windspeed_avg * 100 / 50]|min]|max }}%"></div>
           </div>
         </div>
 
@@ -170,7 +170,7 @@
             </div>
           </div>
           <div class="comparison-bar">
-            <div class="bar-fill" style="width: {{ [100, hist.precip_total * 100 / 2]|min|max(0) }}%"></div>
+            <div class="bar-fill" style="width: {{ [0, [100, hist.precip_total * 100 / 2]|min]|max }}%"></div>
           </div>
         </div>
 

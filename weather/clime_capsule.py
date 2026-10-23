@@ -83,7 +83,15 @@ class ClimeCapsule:
         return data.get("observations", [])
 
     @staticmethod
-    def compile_daily_data(observations: List[Dict], through: int|None) -> DailyObservation:
+    def compile_daily_data(observations: List[Dict], through: int | None = None) -> DailyObservation:
+        """
+        Compile a day's hourly observations into a single daily summary.
+        :param observations: hourly observations for one station on one day
+        :param through: optional hour-of-day cutoff. Observations later than this hour are
+            skipped, so a past day can be compared fairly against a partially complete today.
+            Defaults to None, meaning compile the whole day.
+        :return:
+        """
         # Iterate over the list of daily observations (each representing an hour)
         # and average them out into a single daily observation
 

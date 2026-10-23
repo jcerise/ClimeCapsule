@@ -1,195 +1,239 @@
-
 # ClimeCapsule
 
 ## Overview
 
-ClimeCapsule is a weather data management system that collects and stores weather observations, ranging from historical to real-time data. It provides an interface for querying historical data, real-time conditions, and performing comparisons with past observations. The system interacts with the Weather Underground API to fetch and store weather station data and allows for historical analysis by aggregating daily weather patterns.
+ClimeCapsule collects weather observations from a personal weather station (via the
+Weather Underground PWS API), stores them in a local SQLite database, and serves a
+single-screen HTML dashboard that compares **today's conditions so far** against **the
+same calendar day in previous years**.
 
-## Features
+The dashboard is the point of the project: it is rendered at a fixed **800×480**
+viewport and screenshotted by a Raspberry Pi Zero 2 W, which pushes the image to an
+e-ink display. The screenshot/display side lives outside this repo — as far as
+ClimeCapsule is concerned, it just serves `/today_plus_history` as HTML.
 
-- Fetches **real-time**, **hourly**, and **historical** weather data from Weather Underground API.
-- Aggregates hourly weather observations into daily summaries.
-- Stores weather data in a local SQLite database.
-- Provides a REST API for retrieving weather data, including:
-  - Current weather.
-  - Historical weather for specific days.
-  - Yearly comparisons for a specific date across multiple years.
-- Initialization of the database with historical weather data.
-- API rate limiting and retry mechanism using `backoff` and `ratelimit`.
+Because the station's own data is only reachable through Weather Underground (not
+directly from the device), everything flows through the WU API, which is rate limited
+and, historically, somewhat unreliable — hence the retry/backoff machinery and the
+local database acting as the durable record.
 
-## Directory Structure
+## What it actually shows
+
+`/today_plus_history?years_back=N` renders `N + 1` columns side by side:
+
+| Column | Source | Sections rendered |
+|---|---|---|
+| **Today** | Live current conditions from the station, plus every observation stored for today | Temperature, Wind, Total Precip |
+| **1 Year Ago … N Years Ago** | Stored observations for the same month/day in past years, truncated to the current hour | Temperature, Wind, Total Precip, Feels Like |
+
+Each metric section shows an average as the primary value with high/low beneath it.
+Precipitation shows the day's cumulative total, the peak hourly rate, and a
+year-to-date total (Jan 1 → that column's date).
+
+Historical columns are truncated at the **current hour** (`through=today.hour`) so a
+10am reading today is compared against what had happened by 10am on that date in past
+years, rather than against a full 24-hour day.
+
+Note the asymmetry: the Today column does **not** render a "Feels Like" (wind chill)
+section, while the historical columns do. That is how the layout currently stands.
+
+## Directory structure
 
 ```
-- weather/
-  - clime_capsule.py      # Core application logic for fetching, processing, and storing weather data.
-  - db.py                 # Database management for weather data.
-- api.py                  # FastAPI-based RESTful API.
-- db_setup.py             # Script for initializing and populating the database.
-- config.ini.example      # Example configuration file with API and database settings.
+weather/
+  clime_capsule.py    # ClimeCapsule singleton: WU API access, rate limiting, daily aggregation
+  db.py               # WeatherDB: SQLite schema, inserts, per-date and per-range queries
+api.py                # FastAPI app + all endpoints
+db_setup.py           # One-shot: create the DB and backfill it with historical data
+templates/
+  weather.html        # The 800x480 dashboard (the thing the e-ink display screenshots)
+  index.html          # Placeholder page served at /
+static/style.css      # Dashboard styling, fixed 800x480, e-ink oriented
+preview.html          # Standalone static mockup of the dashboard (see caveat below)
+plans/                # Implementation plans (plan-architect / plan-executor workflow)
+config.ini.example    # Template for the gitignored config.ini
 ```
+
+> **Caveat on `preview.html`:** it is a self-contained copy of the dashboard with
+> inlined CSS and hard-coded values, used for tweaking layout without hitting the API.
+> It has drifted — it still shows the old "Precipitation" section and lacks the
+> year-to-date row. Treat `templates/weather.html` + `static/style.css` as the truth.
 
 ## Installation
 
-1. Clone the repository:
-```shell script
+The project uses [uv](https://docs.astral.sh/uv/) and requires Python 3.13+.
+`pyproject.toml` and `uv.lock` are the dependency source of truth — there is no
+`requirements.txt`.
+
+```shell
 git clone <repository-url>
-   cd <repository-directory>
+cd ClimeCapsule
+uv sync
 ```
 
-2. Install project dependencies:
-```shell script
-pip install -r requirements.txt
-```
+Configure:
 
-3. Configure the application:
-   - Copy the example configuration file:
-```shell script
+```shell
 cp config.ini.example config.ini
 ```
-   - Fill in the values for:
-     - `api_key` (Weather Underground API key)
-     - `station_id` (Weather station ID)
-     - `earliest_observation` (Start date for fetching historical data, in `YYYY-MM-DD` format)
-     - `db_name` (Name of the SQLite database, e.g., `weather_data`)
 
-4. Initialize the database:
-```shell script
-python db_setup.py
-```
+Fill in:
 
-5. Launch the API:
-```shell script
-uvicorn api:app --reload
-```
-
-## Configuration
-
-The application requires a `config.ini` file, with the following sections:
 ```ini
 [weather-underground]
 base_url = https://api.weather.com/v2/pws
 api_key = <YOUR_API_KEY>
 station_id = <YOUR_STATION_ID>
-earliest_observation = <EARLIEST_STATION_DATA>
+earliest_observation = <EARLIEST_STATION_DATA>   # YYYY-MM-DD
 
 [database]
 db_name = weather_data
 ```
 
-- **Weather Underground settings**:
-  - `api_key`: The Weather Underground API Key.
-  - `station_id`: The weather station ID.
-  - `earliest_observation`: The start date (e.g., 2020-01-01) for historical data fetching.  
+- `api_key` — Weather Underground PWS API key.
+- `station_id` — your station's ID.
+- `earliest_observation` — the first date to backfill from, in `YYYY-MM-DD`.
+- `db_name` — SQLite file path (relative to the working directory).
 
-- **Database setting**:
-  - `db_name`: SQLite database file name.
+Both `config.ini` and the `weather_data` database file are gitignored.
 
-## Components
+Initialize the database:
 
-### 1. ClimeCapsule (`clime_capsule.py`)
+```shell
+uv run python db_setup.py
+```
 
-- **Purpose**: The core class that handles communication with the Weather Underground API, aggregates weather data, and interacts with the SQLite database.
-- **Key Responsibility**:
-  - Fetches hourly and daily weather data.
-  - Provides functions for fetching and aggregating data.
-  - Handles database initialization and population with historical data.
-  - Implements singleton pattern to ensure only one instance of ClimeCapsule.
+This is a **long, rate-limited operation on first run**: it walks one day at a time
+from `earliest_observation` to today, one API call per day, capped at 30 calls per
+60 seconds. Several years of history takes a while. If the database file already
+exists, `init_db()` prints a message and does nothing else — it never backfills gaps
+in an existing database.
 
-### 2. Database Management (`db.py`)
+Run the API:
 
-- **Purpose**: Contains the `WeatherDB` class which manages SQLite database interactions.
-- **Features**:
-  - Creates database tables (`weather_data`) if not already present.
-  - Inserts weather observation data.
-  - Queries weather data for specific dates.
+```shell
+uv run uvicorn api:app --reload
+```
 
-### 3. REST API (`api.py`)
+Docs at `http://localhost:8000/docs` (Swagger) and `/redoc`.
 
-- **Purpose**: Exposes the functionalities of ClimeCapsule via a FastAPI-based RESTful API.
-- **Endpoints**:
-  - `/` - Welcome message.
-  - `/health` - Health check endpoint.
-  - `/current` - Fetches and stores the latest weather observations.
-  - `/historical/{date_str}` - Returns historical aggregated data for a specific date.
-  - `/today_plus_history` - Provides current and past observations over multiple years for the same date.
+## Endpoints
 
-### 4. Database Initialization (`db_setup.py`)
+| Method | Path | Returns |
+|---|---|---|
+| GET | `/` | Placeholder HTML page (`index.html`, "Hello from FastAPI!") — not a real landing page |
+| GET | `/health` | `{"status": "ok"}` |
+| GET | `/current` | Fetches current conditions from WU and writes them to the DB — see Known issues |
+| GET | `/historical/{date_str}` | Full-day aggregated `DailyObservation` for one `YYYY-MM-DD`; 400 on a malformed date, 404 when the day has no data |
+| GET | `/today_plus_history?years_back=N` | The dashboard HTML. `years_back` defaults to `2` |
 
-- **Purpose**: Initializes the SQLite database, and fetches historical weather data to populate it.
+Examples:
 
-### 5. Example Config (`config.ini.example`)
-
-Provides a template for the required configuration file.
-
-## API Usage
-
-Once the API is running, you can use tools like `curl`, Postman, or a web browser to interact with it.
-
-### Example Endpoints:
-
-1. **Health Check**
-```shell script
+```shell
 curl http://localhost:8000/health
-```
-
-2. **Fetch Today's Data**
-```shell script
 curl http://localhost:8000/current
+curl 'http://localhost:8000/today_plus_history?years_back=2'
 ```
 
-3. **Fetch Historical Data**
-```shell script
-curl http://localhost:8000/historical/2023-09-15
+## Architecture
+
+### `ClimeCapsule` (`weather/clime_capsule.py`)
+
+A `@singleton`-decorated class holding config, the `WeatherDB` handle, and all WU API
+access. Every outbound call goes through `make_api_call()`, stacked with
+`@sleep_and_retry`, `@on_exception(expo, RateLimitException, max_tries=3)` and
+`@limits(calls=30, period=60)`.
+
+- `init_db()` — creates the schema and backfills history, but only if the DB file is absent.
+- `fetch_historical_hourly_data(start, end)` — one `/history/hourly` call per day in the range.
+- `fetch_current_hourly_data()` — today's hourly observations. **Currently unused**: the
+  call site in `/today_plus_history` is commented out, because WU stores data in UTC but
+  queries it in local time, so after ~5pm MST the request would need tomorrow's date and errors.
+- `fetch_current_data()` — `/observations/current`, the station's latest reading.
+- `compile_daily_data(observations, through)` — a `@staticmethod` that folds a day's hourly
+  rows into one `DailyObservation`: max/min/mean for temperature, wind speed and wind chill;
+  peak `precipRate`; and `max(precipTotal)` as the day's total. Rows whose hour is greater
+  than `through` are skipped; `through=None` means the whole day.
+- `get_ytd_precipitation(target_date, target_day_total)` — Jan 1 → `target_date` total, built
+  from `sum_daily_precipitation()` for the complete days plus the caller-supplied total for
+  the target day itself (which may already be hour-truncated).
+
+`DailyObservation` is a Pydantic model with all fields defaulting to zero/empty, so a day
+with no data still renders the template rather than blowing up.
+
+### `WeatherDB` (`weather/db.py`)
+
+Plain `sqlite3`, one connection opened and closed per call, no ORM.
+
+Table `weather_data`: `id`, `station_id`, `obs_time_local` (**UNIQUE**),
+`temperature_high/low/average`, `humidity`, `wind_speed_high/low/average`,
+`windchill_high/low/average`, `precip_rate`, `precip_total`.
+
+- `insert_observations(obs)` — for **historical hourly** payloads (`tempHigh`, `tempLow`,
+  `tempAvg`, `windspeedHigh`, …). `IntegrityError` on the unique timestamp is caught and
+  logged, so re-inserting an overlapping range is safe.
+- `insert_current_observations(obs)` — for **current-conditions** payloads, whose shape is
+  different (`temp`, `windSpeed`, `windChill`). The single instantaneous value is written to
+  all three of the high/low/average columns.
+- `query_by_date(date_str)` — all rows for one day, re-shaped back into the WU-style nested
+  `{"imperial": {...}}` dicts that `compile_daily_data` expects.
+- `sum_daily_precipitation(start, end)` — one SQL query summing per-day `MAX(precip_total)`
+  across an inclusive range; missing days simply contribute nothing.
+
+The `humidity` column is populated and read back, but nothing in the dashboard displays it.
+
+### `api.py`
+
+FastAPI with `fastapi_utils`' `@cbv` class-based view and `Depends(get_controller)`
+injection. A `lifespan` context manager calls `controller.init_db()` at startup.
+
+### Data flow
+
+1. `db_setup.py` (or first app start) backfills hourly history from WU into SQLite.
+2. A dashboard request fetches current conditions and writes them via `insert_current_observations`.
+3. Today's rows and each past year's rows are read back with `query_by_date`.
+4. `compile_daily_data` aggregates each day; `get_ytd_precipitation` adds the YTD figure.
+5. `weather.html` renders the columns.
+
+## Known issues / rough edges
+
+These are accurate as of now and are the natural targets for cleanup:
+
+- **`/current` writes half-empty rows that poison the day.** It calls `insert_observations()`
+  (the *historical* shape) with a current-conditions payload. Precipitation survives
+  (`precipRate`/`precipTotal` are spelled the same in both shapes), but temperature, wind
+  and wind chill all resolve to `NULL`. A single such row makes `compile_daily_data` raise
+  `TypeError: '>' not supported between instances of 'NoneType' and 'float'` for that entire
+  day, taking the dashboard down with it. `/today_plus_history` does this correctly with
+  `insert_current_observations()`.
+- **`compile_daily_data` can divide by zero.** If a day has rows but every row is filtered
+  out by `through`, `observation_count` stays `0` and the averaging raises.
+- **Sentinel low values.** `low_temp`, `low_windspeed` and `low_wind_chill` initialize to
+  `150`, so a day with no valid readings would report `150` as its low — though in practice
+  `NULL` rows crash the comparison before the sentinel is ever shown.
+- **Dead code.** `fetch_current_hourly_data()` has no live caller, and `/today_plus_history`
+  carries a large commented-out block from the UTC workaround.
+- **No tests.** `pytest` is a declared dependency but there are no test files, and
+  `tests/` is listed in `.gitignore`.
+- **`preview.html` is stale** relative to the live template (see caveat above).
+- **`index.html` is a placeholder** with hard-coded "Hello from FastAPI!" content.
+
+## Development
+
+```shell
+uv run uvicorn api:app --reload   # dev server with reload
+uv run ruff check .               # lint
+uv run pytest                     # test runner (no tests exist yet)
 ```
 
-4. **Comparison of Today with Historical Data**
-```shell script
-curl 'http://localhost:8000/today_plus_history?years_back=3'
-```
+Implementation plans live in `plans/` and follow the plan-architect / plan-executor
+workflow — see `plans/001-show-total-precipitation.md` for the format.
 
-## Error Handling
+## Possible future work
 
-- **Invalid Date Format**: If an invalid date (e.g., `23/09/2023`) is passed to a historical endpoint, you will receive a `400 Bad Request` response.
-- **Data Not Found**: If no weather data is available for the requested date, you will receive a `404 Not Found` response.
-- **API Rate Limits**: If the Weather Underground API rate limit is exceeded, the backoff and retry mechanism will handle retries automatically.
-
-## Dependencies
-
-- **Python Libraries**:
-  - `requests`: To perform HTTP requests.
-  - `sqlite3`: For interacting with the SQLite database.
-  - `fastapi`: To build the RESTful API.
-  - `uvicorn`: For running FastAPI.
-  - `pydantic`: For data validation.
-  - `backoff` & `ratelimit`: To handle API rate limits and retries.
-
-## Development and Testing
-
-1. **Run Unit Tests**:
-   Use `pytest` to test the core functionalities.
-```shell script
-pytest
-```
-
-2. **Run API Server in Development Mode**:
-   Use FastAPI's built-in `uvicorn` to enable live reloading.
-```shell script
-uvicorn api:app --reload
-```
-
-3. **API Documentation**:
-   FastAPI automatically generates Swagger documentation.
-   Visit:
-   - Swagger UI: `http://localhost:8000/docs`
-   - ReDoc: `http://localhost:8000/redoc`
-
-## Future Improvements
-
-- Add more weather data sources beyond Weather Underground.
-- Add user authentication to restrict API usage.
-- Implement caching to reduce API calls and improve response times.
-- Support more advanced statistical analysis and weather insights.
-
----
-
-The ClimeCapsule project provides a well-rounded solution to managing weather data for development and analysis purposes. If you encounter any issues, feel free to submit a bug report or contribute to the project.
+- Backfill gaps in an existing database (today `init_db` only populates a brand-new file).
+- Surface humidity, which is already stored.
+- Scale the comparison bars relative to the columns shown instead of fixed ceilings
+  (currently 50 mph for wind, 2 in for precipitation).
+- Additional dashboard screens driven by the button strip in the template, which is
+  currently decorative.
