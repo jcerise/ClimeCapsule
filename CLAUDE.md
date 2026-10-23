@@ -114,17 +114,25 @@ attach `precip_ytd` to every column → render `weather.html`.
 
 ### Templates and styling
 
-- `templates/weather.html` — the dashboard. Today's column renders Temperature, Wind and
-  Total Precip; historical columns additionally render a "Feels Like" (wind chill) section.
-  Comparison bars use fixed ceilings: 50 mph for wind, 2 in for precipitation.
+- `templates/weather.html` — the dashboard, 92 lines. Each column leads with the average
+  temperature as one large figure plus an `H: … / L: …` range, then a flat list of
+  label/value rows. Today: Wind, Wind High, Total Precip, Precip Rate, YTD. Historical:
+  Wind, Wind High, Total Precip, YTD, Feels Like. The asymmetry runs both ways — Today has
+  no Feels Like, the historical columns have no Precip Rate.
+- There are **no charts or comparison bars**. An earlier layout had them with fixed
+  ceilings; `e85af59` ("Changed layout to be more e-ink friendly") removed them in favour
+  of plain numbers, which hold up better on a low-refresh panel.
 - `static/style.css` — fixed 800×480, `overflow: hidden`, e-ink oriented.
-- **Clamping gotcha:** comparison-bar widths use `{{ [0, [100, x]|min]|max }}`. Do not
-  "simplify" this to `|min|max(0)` — Jinja2's `max` filter takes an *iterable* and reads its
-  first argument as `case_sensitive`, so that form raises `TypeError: 'float' object is not
-  iterable` on every render. That bug shipped in `18a7236` and broke the deployed display.
+- **Jinja `max` filter gotcha** — relevant again the moment anything needs clamping. Jinja's
+  `max` takes an *iterable* and reads its first argument as `case_sensitive`, so
+  `{{ [100, x]|min|max(0) }}` raises `TypeError: 'float' object is not iterable` on every
+  render. The working form nests the lists: `{{ [0, [100, x]|min]|max }}`. That bug shipped
+  in `18a7236` and broke the deployed display; the fix had already existed on the `refactor`
+  branch since `58b29d5` but had never been merged.
 - `preview.html` — a standalone static mockup with inlined CSS and hard-coded values, for
-  layout work without hitting the API. **It has drifted**: still shows the old
-  "Precipitation" section, no YTD row. `templates/weather.html` is the truth.
+  layout work without hitting the API. **It has drifted**: it labels the row
+  "Precipitation" where the template says "Total Precip", and it has no YTD row.
+  `templates/weather.html` is the truth.
 
 ## Known issues
 
@@ -145,6 +153,19 @@ Accurate as of this writing; these are the obvious cleanup targets.
   annotations are all annotating a function object.
 - **Dead code**: `fetch_current_hourly_data()` and the commented-out block in `/today_plus_history`.
 - **No tests** despite `pytest` being a dependency (`tests/` is gitignored).
+
+## Branches and deploying
+
+`main` is the only live branch and now contains everything. The `refactor` and `templates`
+branches are fully merged into it and can be deleted; do not resume work on them. Keeping
+display work on a side branch is what caused the Jinja clamp bug to ship twice — the fix
+existed on `refactor` for nearly a year while `main` stayed broken.
+
+The Raspberry Pi tracks `main` and runs the app under a systemd unit. **Restart the unit
+after every pull.** Jinja2 re-reads templates from disk on each render, but Python modules
+are only loaded at process start, so a pull without a restart renders the new template
+against the old `DailyObservation` and fails with
+`UndefinedError: ... has no attribute '<field>'`. That exact mismatch broke a deploy.
 
 ## Conventions
 

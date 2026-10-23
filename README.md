@@ -21,21 +21,23 @@ local database acting as the durable record.
 
 `/today_plus_history?years_back=N` renders `N + 1` columns side by side:
 
-| Column | Source | Sections rendered |
+| Column | Source | Rows rendered |
 |---|---|---|
-| **Today** | Live current conditions from the station, plus every observation stored for today | Temperature, Wind, Total Precip |
-| **1 Year Ago … N Years Ago** | Stored observations for the same month/day in past years, truncated to the current hour | Temperature, Wind, Total Precip, Feels Like |
+| **Today** | Live current conditions from the station, plus every observation stored for today | Wind, Wind High, Total Precip, Precip Rate, YTD |
+| **1 Year Ago … N Years Ago** | Stored observations for the same month/day in past years, truncated to the current hour | Wind, Wind High, Total Precip, YTD, Feels Like |
 
-Each metric section shows an average as the primary value with high/low beneath it.
-Precipitation shows the day's cumulative total, the peak hourly rate, and a
-year-to-date total (Jan 1 → that column's date).
+Every column leads with the day's average temperature as a single large figure, with
+`H: … / L: …` beneath it. Below that is a flat list of label/value rows — no charts, no
+comparison bars. `Total Precip` is the day's cumulative total, `Precip Rate` the peak
+hourly rate, and `YTD` the year-to-date total (Jan 1 → that column's date).
 
 Historical columns are truncated at the **current hour** (`through=today.hour`) so a
 10am reading today is compared against what had happened by 10am on that date in past
 years, rather than against a full 24-hour day.
 
-Note the asymmetry: the Today column does **not** render a "Feels Like" (wind chill)
-section, while the historical columns do. That is how the layout currently stands.
+Note the asymmetry, which runs both ways: Today shows `Precip Rate` but no
+`Feels Like` (wind chill), and the historical columns show `Feels Like` but no
+`Precip Rate`. That is how the layout currently stands.
 
 ## Directory structure
 
@@ -233,7 +235,8 @@ workflow — see `plans/001-show-total-precipitation.md` for the format.
 
 - Backfill gaps in an existing database (today `init_db` only populates a brand-new file).
 - Surface humidity, which is already stored.
-- Scale the comparison bars relative to the columns shown instead of fixed ceilings
-  (currently 50 mph for wind, 2 in for precipitation).
+- Reintroduce some visual comparison between columns. An earlier layout drew bars with
+  fixed ceilings (50 mph wind, 2 in precip); the current e-ink layout dropped them in
+  favour of plain numbers. If they come back, scale them relative to the columns shown.
 - Additional dashboard screens driven by the button strip in the template, which is
   currently decorative.
