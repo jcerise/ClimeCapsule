@@ -87,7 +87,7 @@ class ClimeCapsuleAPI:
         return {"date": date_str, "observation": daily_observation}
 
     @router.get("/today_plus_history", response_class=HTMLResponse)
-    async def today_plus_history(self, request: Request, years_back: int = 2):
+    async def today_plus_history(self, request: Request, years_back: int = 3):
         today = datetime.today()
         today_str = today.strftime("%Y-%m-%d")
 
@@ -129,6 +129,7 @@ class ClimeCapsuleAPI:
 
             past_date_str = past_date.strftime("%Y-%m-%d")
             summary = self.controller.compile_daily_data(self.controller.db.query_by_date(past_date_str), through=today.hour)
+            summary.year = str(past_year)
             summary.precip_ytd = self.controller.get_ytd_precipitation(
                 past_date, summary.precip_total
             )

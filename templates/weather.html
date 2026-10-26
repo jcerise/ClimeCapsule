@@ -16,11 +16,12 @@
         <div class="button-icon empty"></div>
       </div>
 
-      <!-- Today -->
+      <!-- Today. This is the only column that carries row labels; every column
+           shares one grid-template-rows, so the historical values line up against
+           these labels and do not need to repeat them. Keep the row order and the
+           row count identical across both column types or the alignment breaks. -->
       <div class="column today">
-        <div class="column-header">
-          <h2>Today</h2>
-        </div>
+        <div class="column-header"><h2>Today</h2></div>
         <div class="date">{{ today_observation.friendly_date }}</div>
 
         <div class="temp-main">
@@ -41,10 +42,6 @@
           <span class="value">{{ "%.2f"|format(today_observation.precip_total) }} in</span>
         </div>
         <div class="metric-row">
-          <span class="label">Precip Rate</span>
-          <span class="value">{{ "%.2f"|format(today_observation.precip_rate) }} in/hr</span>
-        </div>
-        <div class="metric-row">
           <span class="label">YTD</span>
           <span class="value">{{ "%.2f"|format(today_observation.precip_ytd) }} in</span>
         </div>
@@ -53,12 +50,10 @@
       </div>
 
       {% for hist in historical_comparisons %}
-      <!-- {{ loop.index }} Year Ago -->
+      <!-- Same rows, same order, values only -->
       <div class="column historical">
-        <div class="column-header">
-          <h2>{{ loop.index }} Year{% if loop.index > 1 %}s{% endif %} Ago</h2>
-        </div>
-        <div class="date">{{ hist.friendly_date }}</div>
+        <div class="column-header"><h2>{{ loop.index }} Year{% if loop.index > 1 %}s{% endif %} Ago</h2></div>
+        <div class="date">{{ hist.year }}</div>
 
         <div class="temp-main">
           <div class="avg">{{ "%.0f"|format(hist.temp_avg) }}°</div>
@@ -66,24 +61,16 @@
         </div>
 
         <div class="metric-row">
-          <span class="label">Wind</span>
           <span class="value">{{ "%.0f"|format(hist.windspeed_avg) }} mph</span>
         </div>
         <div class="metric-row">
-          <span class="label">Wind High</span>
           <span class="value">{{ "%.0f"|format(hist.windspeed_high) }} mph</span>
         </div>
         <div class="metric-row">
-          <span class="label">Total Precip</span>
           <span class="value">{{ "%.2f"|format(hist.precip_total) }} in</span>
         </div>
         <div class="metric-row">
-          <span class="label">YTD</span>
           <span class="value">{{ "%.2f"|format(hist.precip_ytd) }} in</span>
-        </div>
-        <div class="metric-row">
-          <span class="label">Feels Like</span>
-          <span class="value">{{ "%.0f"|format(hist.wind_chill_avg) }}°</span>
         </div>
       </div>
       {% endfor %}

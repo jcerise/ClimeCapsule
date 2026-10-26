@@ -21,23 +21,26 @@ local database acting as the durable record.
 
 `/today_plus_history?years_back=N` renders `N + 1` columns side by side:
 
-| Column | Source | Rows rendered |
-|---|---|---|
-| **Today** | Live current conditions from the station, plus every observation stored for today | Wind, Wind High, Total Precip, Precip Rate, YTD |
-| **1 Year Ago … N Years Ago** | Stored observations for the same month/day in past years, truncated to the current hour | Wind, Wind High, Total Precip, YTD, Feels Like |
+| Column | Source | Heading | Rows rendered |
+|---|---|---|---|
+| **Today** | Live current conditions from the station, plus every observation stored for today | `TODAY` + the full date | Wind, Wind High, Total Precip, YTD |
+| **1 Year Ago … N Years Ago** | Stored observations for the same month/day in past years, truncated to the current hour | `N YEARS AGO` + the bare year | the same four, values only |
 
 Every column leads with the day's average temperature as a single large figure, with
-`H: … / L: …` beneath it. Below that is a flat list of label/value rows — no charts, no
-comparison bars. `Total Precip` is the day's cumulative total, `Precip Rate` the peak
-hourly rate, and `YTD` the year-to-date total (Jan 1 → that column's date).
+`H: … / L: …` beneath it, then the same four label/value rows — no charts, no comparison
+bars. `Total Precip` is the day's own rainfall and `YTD` the year-to-date total
+(Jan 1 → that column's date).
+
+**Only the Today column prints the labels.** Every column is a CSS grid sharing one
+`grid-template-rows`, so a historical value sits at exactly the same height as the Today
+row it belongs to, and is read off that label. This is what buys the space for a fourth
+column. It also means the two column types must keep the same number of rows in the same
+order — add a row to one and the alignment, and with it the only cue to what a historical
+number means, is gone.
 
 Historical columns are truncated at the **current hour** (`through=today.hour`) so a
 10am reading today is compared against what had happened by 10am on that date in past
 years, rather than against a full 24-hour day.
-
-Note the asymmetry, which runs both ways: Today shows `Precip Rate` but no
-`Feels Like` (wind chill), and the historical columns show `Feels Like` but no
-`Precip Rate`. That is how the layout currently stands.
 
 ## Directory structure
 
@@ -59,7 +62,8 @@ config.ini.example    # Template for the gitignored config.ini
 
 > **Caveat on `preview.html`:** it is a self-contained copy of the dashboard with
 > inlined CSS and hard-coded values, used for tweaking layout without hitting the API.
-> It has drifted — it still shows the old "Precipitation" section and lacks the
+> It has drifted badly and is now misleading: three columns instead of four, labels
+> repeated in every column, a "Precipitation" row that no longer exists, and no
 > year-to-date row. Treat `templates/weather.html` + `static/style.css` as the truth.
 
 ## Installation
@@ -128,14 +132,14 @@ Docs at `http://localhost:8000/docs` (Swagger) and `/redoc`.
 | GET | `/health` | `{"status": "ok"}` |
 | GET | `/current` | Fetches current conditions from WU and writes them to the DB — see Known issues |
 | GET | `/historical/{date_str}` | Full-day aggregated `DailyObservation` for one `YYYY-MM-DD`; 400 on a malformed date, 404 when the day has no data |
-| GET | `/today_plus_history?years_back=N` | The dashboard HTML. `years_back` defaults to `2` |
+| GET | `/today_plus_history?years_back=N` | The dashboard HTML. `years_back` defaults to `3` |
 
 Examples:
 
 ```shell
 curl http://localhost:8000/health
 curl http://localhost:8000/current
-curl 'http://localhost:8000/today_plus_history?years_back=2'
+curl 'http://localhost:8000/today_plus_history?years_back=3'
 ```
 
 ## Architecture

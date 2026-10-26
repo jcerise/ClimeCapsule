@@ -15,6 +15,7 @@ class DailyObservation(BaseModel):
     station_id: str = ""
     obs_time_local: str = ""
     friendly_date: str = ""
+    year: str = ""
     temp_high: float = 0.0
     temp_low: float = 0.0
     temp_avg: float = 0.0

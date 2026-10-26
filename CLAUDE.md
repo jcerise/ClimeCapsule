@@ -64,8 +64,14 @@ config, the `WeatherDB` handle, and every WU API call.
   (possibly hour-truncated) total for the target day, rather than recomputing it.
 
 `DailyObservation` (Pydantic) — every field defaults to zero/empty so a day with no data
-still renders the template instead of raising. Fields: station/date, temp high/low/avg,
-windspeed high/low/avg, wind chill high/low/avg, `precip_rate`, `precip_total`, `precip_ytd`.
+still renders the template instead of raising. Fields: station/date, `year`, temp
+high/low/avg, windspeed high/low/avg, wind chill high/low/avg, `precip_rate`,
+`precip_total`, `precip_ytd`.
+
+`year` is set by `/today_plus_history` from the loop counter rather than parsed out of the
+observation, so a historical column still shows the right year when that year has no
+stored data at all. `wind_chill_*` and `precip_rate` are computed and stored but no longer
+displayed anywhere, which puts them alongside `humidity`.
 
 ### `weather/db.py`
 
@@ -109,20 +115,24 @@ A `lifespan` context manager runs `controller.init_db()` at startup.
 | `/health` | `{"status": "ok"}` |
 | `/current` | Fetches current conditions and stores them — **buggy, see below** |
 | `/historical/{date_str}` | Full-day aggregate for one `YYYY-MM-DD` (no hour cutoff) |
-| `/today_plus_history?years_back=N` | The dashboard. `years_back` defaults to 2. This is the only endpoint the e-ink display uses |
+| `/today_plus_history?years_back=N` | The dashboard. `years_back` defaults to 3. The display requests the bare URL, so the default is what it gets |
 
 `/today_plus_history` flow: fetch current conditions → `insert_current_observations` →
 compile today with `through=None` → for each of the last N years, `query_by_date` on the
 same month/day (with a Feb 29 → Feb 28 fallback) and compile with `through=today.hour` →
-attach `precip_ytd` to every column → render `weather.html`.
+attach `year` and `precip_ytd` to every column → render `weather.html`.
 
 ### Templates and styling
 
-- `templates/weather.html` — the dashboard, 92 lines. Each column leads with the average
-  temperature as one large figure plus an `H: … / L: …` range, then a flat list of
-  label/value rows. Today: Wind, Wind High, Total Precip, Precip Rate, YTD. Historical:
-  Wind, Wind High, Total Precip, YTD, Feels Like. The asymmetry runs both ways — Today has
-  no Feels Like, the historical columns have no Precip Rate.
+- `templates/weather.html` — the dashboard. Four columns: Today plus three years. Each
+  leads with the average temperature as one large figure plus an `H: … / L: …` range, then
+  four rows — Wind, Wind High, Total Precip, YTD — identical in both column types.
+- **Row alignment is load-bearing.** Only the Today column prints labels; the historical
+  columns print values alone and are read off Today's labels by sitting at the same
+  height. Every `.column` is a CSS grid sharing one explicit `grid-template-rows`
+  (`26px 30px 130px repeat(4, 58px) 1fr`), which is what guarantees that. Do not switch
+  those to auto-sized rows, and do not give one column type a row the other lacks: the
+  columns would drift apart and the historical numbers would lose their only label.
 - There are **no charts or comparison bars**. An earlier layout had them with fixed
   ceilings; `e85af59` ("Changed layout to be more e-ink friendly") removed them in favour
   of plain numbers, which hold up better on a low-refresh panel.
@@ -134,9 +144,11 @@ attach `precip_ytd` to every column → render `weather.html`.
   in `18a7236` and broke the deployed display; the fix had already existed on the `refactor`
   branch since `58b29d5` but had never been merged.
 - `preview.html` — a standalone static mockup with inlined CSS and hard-coded values, for
-  layout work without hitting the API. **It has drifted**: it labels the row
-  "Precipitation" where the template says "Total Precip", and it has no YTD row.
-  `templates/weather.html` is the truth.
+  layout work without hitting the API. **It has drifted badly** and is now misleading:
+  three columns instead of four, labels repeated in every column, a "Precipitation" row the
+  template no longer has, and no YTD row. `templates/weather.html` + `static/style.css` are
+  the truth. To see the real thing, render the template and screenshot it at 800×480
+  (`firefox --headless --window-size=800,480 --screenshot out.png file://…`).
 
 ## The precipitation carryover rule
 
