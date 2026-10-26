@@ -29,11 +29,11 @@ cp config.ini.example config.ini   # then fill in api_key, station_id, earliest_
 uv run python db_setup.py          # create the DB and backfill history (slow: 1 rate-limited API call per day)
 uv run uvicorn api:app --reload    # dev server; docs at /docs and /redoc
 uv run ruff check .                # lint
-uv run pytest                      # test runner — no test files exist yet
+uv run pytest                      # tests (in tests/, pythonpath set in pyproject.toml)
 ```
 
-`config.ini` and the `weather_data` DB file are gitignored. `tests/` is gitignored too,
-which is why `pytest` is a dependency with nothing to run.
+`config.ini` and the `weather_data` DB file are gitignored. `tests/` used to be as well;
+it is tracked now, and `tests/conftest.py` holds the observation builders and fixtures.
 
 ## Architecture
 
@@ -56,6 +56,9 @@ config, the `WeatherDB` handle, and every WU API call.
   into one `DailyObservation`. `through` is an hour-of-day cutoff: rows past it are skipped
   so historical days can be compared fairly against a partial today. `through=None` means
   the full day, which is what `/historical/{date_str}` relies on.
+- `precip_cycle_start(observations)` — **module-level function, not a method**, because
+  `@singleton` makes `ClimeCapsule.<anything>` unreachable at runtime. Returns the index of
+  the first observation in a day's own precipitation cycle. See the carryover rule below.
 - `get_ytd_precipitation(target_date, target_day_total)` — Jan 1 → `target_date` precip.
   Sums complete prior days via `db.sum_daily_precipitation()` and adds the caller-supplied
   (possibly hour-truncated) total for the target day, rather than recomputing it.
@@ -89,8 +92,9 @@ re-inserting overlapping ranges is safe.
 - `query_by_date(date_str)` — reshapes rows back into WU-style `{"imperial": {...}}` dicts
   for `compile_daily_data`. Note the read-side key names (`windspeedAverage`,
   `windchillAverage`) differ from the write-side ones; `compile_daily_data` uses the read-side names.
-- `sum_daily_precipitation(start, end)` — one query summing per-day `MAX(precip_total)`.
-  WU's `precipTotal` is cumulative-so-far within a day, so the day's total is its max.
+- `sum_daily_precipitation(start, end)` — one query summing per-day precipitation totals.
+  WU's `precipTotal` is cumulative-so-far within a day, so a day's total is its max — but
+  see the carryover rule below, because a plain `MAX()` over the calendar day is wrong.
 
 `humidity` is stored and read back but never displayed.
 
@@ -134,6 +138,33 @@ attach `precip_ytd` to every column → render `weather.html`.
   "Precipitation" where the template says "Total Precip", and it has no YTD row.
   `templates/weather.html` is the truth.
 
+## The precipitation carryover rule
+
+WU reports `precipTotal` as a total running from the start of the local day, so a day's
+total is the maximum of that running figure. The catch is that the **current-conditions
+endpoint keeps serving yesterday's figure for an hour or two past local midnight**. Taking
+a plain `MAX()` over the calendar day therefore makes each day inherit the whole of the
+previous day's rain, and the same rain lands in the YTD sum twice.
+
+The drop back toward zero marks the real reset. Everything before that first drop belongs
+to yesterday. Both aggregation paths apply this:
+
+- `precip_cycle_start()` + `compile_daily_data()` for a single day's `precip_total`
+- the `windowed` / `cycle_start` CTEs in `sum_daily_precipitation()` for the YTD sum
+
+This only affects `precip_total`. Temperature, wind and `precipRate` are instantaneous
+readings and remain valid before the reset, so they still use every observation in range.
+
+Two properties of the real data make the rule safe, both verified over 1375 days: the
+reset only ever lands in hours 00–02, never mid-day, and no day contains more than one
+drop. The known limitation is a day whose reset was never observed — if the service is
+down across midnight there is no drop to key off, and that day still inherits.
+
+Measured on the production database, the old behaviour overstated 2026's YTD by 74%
+(15.50 in reported against 8.92 in actual) and 2025's by 70%. Days sourced from
+`/history/hourly` were unaffected, which is why 2023 and 2024 were correct and the
+comparison looked lopsided.
+
 ## Known issues
 
 Accurate as of this writing; these are the obvious cleanup targets.
@@ -152,7 +183,8 @@ Accurate as of this writing; these are the obvious cleanup targets.
   runtime, not a class, so `isinstance` checks, subclassing, and the `controller: ClimeCapsule`
   annotations are all annotating a function object.
 - **Dead code**: `fetch_current_hourly_data()` and the commented-out block in `/today_plus_history`.
-- **No tests** despite `pytest` being a dependency (`tests/` is gitignored).
+- **Coverage is narrow.** The suite covers precipitation accounting and the daily
+  aggregation; the API endpoints, the WU client and the template have no tests.
 
 ## Branches and deploying
 

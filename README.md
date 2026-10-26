@@ -52,6 +52,7 @@ templates/
   index.html          # Placeholder page served at /
 static/style.css      # Dashboard styling, fixed 800x480, e-ink oriented
 preview.html          # Standalone static mockup of the dashboard (see caveat below)
+tests/                # pytest suite; conftest.py holds the observation builders
 plans/                # Implementation plans (plan-architect / plan-executor workflow)
 config.ini.example    # Template for the gitignored config.ini
 ```
@@ -179,8 +180,10 @@ Table `weather_data`: `id`, `station_id`, `obs_time_local` (**UNIQUE**),
   all three of the high/low/average columns.
 - `query_by_date(date_str)` — all rows for one day, re-shaped back into the WU-style nested
   `{"imperial": {...}}` dicts that `compile_daily_data` expects.
-- `sum_daily_precipitation(start, end)` — one SQL query summing per-day `MAX(precip_total)`
-  across an inclusive range; missing days simply contribute nothing.
+- `sum_daily_precipitation(start, end)` — one SQL query summing per-day precipitation
+  totals across an inclusive range; missing days simply contribute nothing. It skips the
+  rows at the start of a day that still report the previous day's running total — see
+  [The precipitation carryover rule](#the-precipitation-carryover-rule).
 
 The `humidity` column is populated and read back, but nothing in the dashboard displays it.
 
@@ -215,17 +218,42 @@ These are accurate as of now and are the natural targets for cleanup:
   `NULL` rows crash the comparison before the sentinel is ever shown.
 - **Dead code.** `fetch_current_hourly_data()` has no live caller, and `/today_plus_history`
   carries a large commented-out block from the UTC workaround.
-- **No tests.** `pytest` is a declared dependency but there are no test files, and
-  `tests/` is listed in `.gitignore`.
+- **Test coverage is narrow.** `tests/` covers precipitation accounting and the daily
+  aggregation. The API endpoints, the Weather Underground client and the template are
+  untested.
 - **`preview.html` is stale** relative to the live template (see caveat above).
 - **`index.html` is a placeholder** with hard-coded "Hello from FastAPI!" content.
+
+## The precipitation carryover rule
+
+Weather Underground reports `precipTotal` as a total running from the start of the local
+day, so a day's rainfall is the maximum of that running figure. But the current-conditions
+endpoint keeps reporting **yesterday's** figure for an hour or two past local midnight:
+
+```
+2026-10-22 23:50   total 0.44   <- the 22nd finishes on 0.44 in
+2026-10-23 00:05   total 0.44   <- still yesterday's number
+2026-10-23 00:20   total 0.00   <- reset, 20 minutes late
+```
+
+A plain maximum over the calendar day would score the 23rd at 0.44 in when 0.01 in fell,
+counting the same rain on both days and again in the year-to-date total. So both
+aggregation paths ignore the rows before the day's first drop in the running total:
+`precip_cycle_start()` for a single day, and the `cycle_start` CTE in
+`sum_daily_precipitation()` for a range.
+
+Only `precip_total` is treated this way. Temperature, wind and `precipRate` are
+instantaneous readings that stay valid before the reset.
+
+One limitation: if the service is down across midnight the reset is never recorded, so
+there is no drop to detect and the day inherits as before.
 
 ## Development
 
 ```shell
 uv run uvicorn api:app --reload   # dev server with reload
 uv run ruff check .               # lint
-uv run pytest                     # test runner (no tests exist yet)
+uv run pytest                     # run the test suite
 ```
 
 Implementation plans live in `plans/` and follow the plan-architect / plan-executor

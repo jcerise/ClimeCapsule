@@ -40,6 +40,27 @@ def singleton(cls):
     return get_instance
 
 
+def precip_cycle_start(observations: List[Dict]) -> int:
+    """
+    Index of the first observation belonging to this day's own precipitation cycle.
+
+    WU reports precipTotal as a total running from the start of the day, but the
+    current-conditions endpoint can keep serving yesterday's figure for an hour or
+    two past local midnight. The first drop in the running total is the reset;
+    everything before it accumulated yesterday and must not be counted again today.
+
+    :param observations: one station's observations for one day, ordered by
+        obs_time_local ascending (which is what WeatherDB.query_by_date returns)
+    :return: index of the first observation in today's cycle, or 0 if no reset is
+        present -- either because the day starts dry or because the reset itself
+        was never observed.
+    """
+    for index in range(1, len(observations)):
+        if observations[index]["imperial"]["precipTotal"] < observations[index - 1]["imperial"]["precipTotal"]:
+            return index
+    return 0
+
+
 @singleton
 class ClimeCapsule:
     def __init__(self):
@@ -91,6 +112,10 @@ class ClimeCapsule:
             skipped, so a past day can be compared fairly against a partially complete today.
             Defaults to None, meaning compile the whole day.
         :return:
+
+        precip_total is taken only over this day's own accumulation cycle -- see
+        precip_cycle_start(). Every other metric uses all the observations in range;
+        only the running precipitation total carries across midnight.
         """
         # Iterate over the list of daily observations (each representing an hour)
         # and average them out into a single daily observation
@@ -116,7 +141,10 @@ class ClimeCapsule:
             date_str: str = dt.strftime("%Y-%m-%d")
             station_id: str = observations[0]["stationID"]
 
-            for obs in observations:
+            # Rows before this index still report yesterday's running precipitation total.
+            cycle_start: int = precip_cycle_start(observations)
+
+            for index, obs in enumerate(observations):
                 # If we only want to compile through a certain time (for more accurate comparison to the current
                 # observations), break if we find an observation beyond the time we care about
                 observation_time: datetime = datetime.strptime(obs["obsTimeLocal"], "%Y-%m-%d %H:%M:%S")
@@ -151,7 +179,7 @@ class ClimeCapsule:
                 if obs["imperial"]["precipRate"] > high_precip_rate:
                     high_precip_rate = obs["imperial"]["precipRate"]
 
-                if obs["imperial"]["precipTotal"] > max_precip_total:
+                if index >= cycle_start and obs["imperial"]["precipTotal"] > max_precip_total:
                     max_precip_total = obs["imperial"]["precipTotal"]
                 observation_count += 1
 

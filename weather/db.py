@@ -135,10 +135,18 @@ class WeatherDB:
 
     def sum_daily_precipitation(self, start_date: datetime, end_date: datetime) -> float:
         """
-        Sum of per-day MAX(precip_total) across the inclusive date range
+        Sum of per-day precipitation totals across the inclusive date range
         [start_date, end_date]. Returns 0.0 if end_date < start_date or no
         matching observations exist. Missing days within the range are simply
         absent from the sum (no fallback / no interpolation).
+
+        A day's total is the maximum of its running precip_total, but only across
+        the rows that belong to that day's own accumulation. WU serves
+        precip_total as a running daily figure and the current-conditions
+        endpoint can keep reporting yesterday's value for an hour or two past
+        local midnight, so a plain MAX() over the calendar day makes the day
+        inherit the whole of yesterday's rain. The drop back toward zero marks
+        the reset; rows before it are yesterday's.
         """
         if end_date < start_date:
             return 0.0
@@ -150,11 +158,30 @@ class WeatherDB:
         end_ts = (end_date + timedelta(days=1)).strftime("%Y-%m-%d 00:00:00")
 
         cursor.execute("""
-            SELECT COALESCE(SUM(daily_max), 0.0) FROM (
-                SELECT MAX(precip_total) AS daily_max
+            WITH windowed AS (
+                SELECT DATE(obs_time_local) AS day,
+                       obs_time_local,
+                       precip_total,
+                       LAG(precip_total) OVER (
+                           PARTITION BY DATE(obs_time_local)
+                           ORDER BY obs_time_local
+                       ) AS previous_total
                 FROM weather_data
                 WHERE obs_time_local >= ? AND obs_time_local < ?
-                GROUP BY DATE(obs_time_local)
+            ),
+            cycle_start AS (
+                SELECT day, MIN(obs_time_local) AS starts_at
+                FROM windowed
+                WHERE previous_total IS NOT NULL AND precip_total < previous_total
+                GROUP BY day
+            )
+            SELECT COALESCE(SUM(daily_max), 0.0) FROM (
+                SELECT MAX(windowed.precip_total) AS daily_max
+                FROM windowed
+                LEFT JOIN cycle_start ON cycle_start.day = windowed.day
+                WHERE cycle_start.starts_at IS NULL
+                   OR windowed.obs_time_local >= cycle_start.starts_at
+                GROUP BY windowed.day
             )
         """, (start_ts, end_ts))
         result = cursor.fetchone()[0]
