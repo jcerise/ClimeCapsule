@@ -53,18 +53,26 @@ html, body {
 }
 
 /* Columns.
-   Every column is a grid with the SAME explicit row heights, which is what makes
-   a row in one column sit at exactly the same height as the matching row in every
-   other column. Only the Today column prints the labels, so this alignment is the
-   only thing telling the reader what a historical value means -- do not switch
-   these back to auto-sized rows, and do not let one column type gain or lose a row.
-   The seven rows are: header, date/year, temperature block, then four metric rows.
-   The metric rows are 1fr rather than a fixed height so they share out whatever is
-   left and the column always bottoms out exactly on the 480px edge. 1fr is still an
-   explicit track and is identical in every column, so the alignment holds. */
+   Every column stacks the SAME fixed heights, which is what makes a row in one
+   column sit at exactly the same height as the matching row in every other column.
+   Only the Today column prints the labels, so this alignment is the only thing
+   telling the reader what a historical value means -- do not let the heights drift
+   apart, and do not let one column type gain or lose a row.
+   The seven bands are: header, date/year, temperature block, then four metric rows.
+   The first three are pinned to a fixed height and the four metric rows take
+   flex: 1 1 0%, so they divide whatever is left equally and the column bottoms out
+   exactly on the 480px edge.
+
+   This is deliberately flexbox and not CSS grid. The screenshot renderer on the Pi
+   silently ignores `display: grid` -- the column then falls back to `display: block`,
+   every row height is dropped, and the layout collapses to natural heights: compact
+   rows, dead space underneath, headers adrift. Flexbox is what this stylesheet has
+   always used and what that renderer demonstrably handles, so keep the layout on it.
+   Check any new layout property against the real display, not just a desktop browser. */
 .column {
-  display: grid;
-  grid-template-rows: 28px 34px 150px repeat(4, 1fr);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   padding: 14px 16px;
   border-right: 2px solid #000;
   min-width: 0;
@@ -88,6 +96,8 @@ html, body {
    place the h2 line box by its own line-height, so any difference in font size
    between the column types would show up as headers at different heights. */
 .column-header {
+  flex: 0 0 28px;
+  height: 28px;
   display: flex;
   align-items: center;
 }
@@ -103,6 +113,8 @@ html, body {
 
 /* Date for Today, bare year for the historical columns */
 .date {
+  flex: 0 0 34px;
+  height: 34px;
   display: flex;
   align-items: center;
   font-size: 0.85rem;
@@ -116,6 +128,8 @@ html, body {
 
 /* Main temperature display */
 .temp-main {
+  flex: 0 0 150px;
+  height: 150px;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -144,7 +158,13 @@ html, body {
 }
 
 /* Metric rows */
+/* The four rows share out the remaining height equally. Every column pins the same
+   three heights above them and has the same number of rows, so a row in one column
+   lands at the same height as the matching row in every other column -- which is the
+   only thing telling the reader what an unlabelled historical value means. */
 .metric-row {
+  flex: 1 1 0%;
+  min-height: 0;
   display: flex;
   justify-content: space-between;
   align-items: center;

@@ -31,12 +31,17 @@ Every column leads with the day's average temperature as a single large figure, 
 bars. `Total Precip` is the day's own rainfall and `YTD` the year-to-date total
 (Jan 1 → that column's date).
 
-**Only the Today column prints the labels.** Every column is a CSS grid sharing one
-`grid-template-rows`, so a historical value sits at exactly the same height as the Today
-row it belongs to, and is read off that label. This is what buys the space for a fourth
-column. It also means the two column types must keep the same number of rows in the same
-order — add a row to one and the alignment, and with it the only cue to what a historical
-number means, is gone.
+**Only the Today column prints the labels.** Every column is a flex column pinning the
+same heights for its header, year and temperature block, above four equal-height metric
+rows, so a historical value sits at exactly the same height as the Today row it belongs
+to and is read off that label. This is what buys the space for a fourth column. It also
+means the two column types must keep the same number of rows in the same order — add a
+row to one and the alignment, and with it the only cue to what a historical number means,
+is gone.
+
+The layout deliberately avoids CSS grid: the tool that screenshots the dashboard for the
+e-ink panel ignores `display: grid`, which collapses the whole layout while still looking
+correct in a desktop browser.
 
 Historical columns are truncated at the **current hour** (`through=today.hour`) so a
 10am reading today is compared against what had happened by 10am on that date in past
@@ -55,6 +60,7 @@ templates/
   index.html          # Placeholder page served at /
 static/style.css      # Dashboard styling, fixed 800x480, e-ink oriented
 preview.html          # Standalone static mockup of the dashboard (see caveat below)
+renderer-probe.html   # Screenshot this with the Pi's tool to see which CSS it supports
 tests/                # pytest suite; conftest.py holds the observation builders
 plans/                # Implementation plans (plan-architect / plan-executor workflow)
 config.ini.example    # Template for the gitignored config.ini

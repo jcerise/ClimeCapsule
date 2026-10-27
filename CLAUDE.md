@@ -129,12 +129,12 @@ attach `year` and `precip_ytd` to every column → render `weather.html`.
   four rows — Wind, Wind High, Total Precip, YTD — identical in both column types.
 - **Row alignment is load-bearing.** Only the Today column prints labels; the historical
   columns print values alone and are read off Today's labels by sitting at the same
-  height. Every `.column` is a CSS grid sharing one explicit `grid-template-rows`
-  (`28px 34px 150px repeat(4, 1fr)`), which is what guarantees that. The metric rows are
-  `1fr` so they share out whatever height is left and the column bottoms out exactly on
-  the 480px edge; that is still an explicit, identical track, not auto sizing. Do not
-  switch them to `auto`, and do not give one column type a row the other lacks: the
-  columns would drift apart and the historical numbers would lose their only label.
+  height. Every `.column` is a flex column pinning the same three heights — header
+  `28px`, date/year `34px`, temperature block `150px` — above four `flex: 1 1 0%` metric
+  rows that divide the remainder equally, so the column bottoms out exactly on the 480px
+  edge. Do not let those heights drift apart, and do not give one column type a row the
+  other lacks: the columns would separate and the historical numbers would lose their
+  only label.
 - `.column-header` is `display: flex; align-items: center` rather than a plain block. A
   block places the `h2` by its own line box, so any difference in font size between the
   column types shows up as headers sitting at visibly different heights.
@@ -145,6 +145,16 @@ attach `year` and `precip_ytd` to every column → render `weather.html`.
   ceilings; `e85af59` ("Changed layout to be more e-ink friendly") removed them in favour
   of plain numbers, which hold up better on a low-refresh panel.
 - `static/style.css` — fixed 800×480, `overflow: hidden`, e-ink oriented.
+- **The screenshot renderer does not support CSS grid.** A layout built on `display: grid`
+  renders correctly in a desktop browser and collapses on the Pi: the declaration is
+  dropped, `.column` falls back to `display: block`, every row height goes with it, and
+  the result is compact rows with dead space beneath and headers adrift. It fails
+  silently — no error, just a wrong-looking screenshot. That shipped in `615d091` and
+  cost a deploy cycle to find. Flexbox is what this stylesheet has always used and what
+  the renderer handles, so build layout on flexbox and treat grid as unavailable. More
+  generally: a desktop browser is not a check of the display. `renderer-probe.html` at the
+  repo root is a standalone page — screenshot it with the Pi's own tool and it shows which
+  layout primitives that renderer actually supports.
 - **Jinja `max` filter gotcha** — relevant again the moment anything needs clamping. Jinja's
   `max` takes an *iterable* and reads its first argument as `case_sensitive`, so
   `{{ [100, x]|min|max(0) }}` raises `TypeError: 'float' object is not iterable` on every

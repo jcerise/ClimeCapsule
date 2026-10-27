@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=800, height=480" />
+    <title>Renderer probe</title>
+    <style>
+      body { width: 800px; height: 480px; margin: 0; padding: 12px;
+             font-family: Arial, sans-serif; background: #fff;
+             box-sizing: border-box; overflow: hidden; }
+      h1 { font-size: 15px; margin: 0 0 10px 0; }
+      h2 { font-size: 13px; margin: 10px 0 4px 0; }
+      .box { border: 2px solid #000; height: 58px; }
+      .cell { border: 1px solid #000; background: #eee; font-size: 13px;
+              text-align: center; line-height: 54px; }
+
+      /* If flexbox works, these three sit SIDE BY SIDE. */
+      .flexbox { display: flex; }
+      .flexbox .cell { flex: 1; }
+
+      /* If CSS grid works, these three sit SIDE BY SIDE. If it does not, the
+         declaration is dropped, the container stays display:block, and they STACK
+         -- which also pushes them out of the box. */
+      .grid { display: grid; grid-template-columns: 1fr 1fr 1fr; }
+
+      /* If flexbox sizing works, these rows are equal and fill the box exactly. */
+      .rows { display: flex; flex-direction: column; height: 120px; }
+      .rows .cell { flex: 1 1 0%; line-height: 38px; }
+
+      .verdict { font-size: 13px; margin-top: 10px; }
+      .supports-grid::after { content: "@supports says: grid NOT supported"; }
+      @supports (display: grid) {
+        .supports-grid::after { content: "@supports says: grid supported"; }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>ClimeCapsule renderer probe &mdash; screenshot this with the same tool that captures the dashboard</h1>
+
+    <h2>1. Flexbox columns &mdash; three boxes should sit side by side</h2>
+    <div class="box flexbox"><div class="cell">A</div><div class="cell">B</div><div class="cell">C</div></div>
+
+    <h2>2. CSS grid columns &mdash; three boxes side by side means grid works; stacked or overflowing means it does NOT</h2>
+    <div class="box grid"><div class="cell">A</div><div class="cell">B</div><div class="cell">C</div></div>
+
+    <h2>3. Flexbox row sizing &mdash; three equal rows should exactly fill the 120px box</h2>
+    <div class="box rows" style="height:120px"><div class="cell">1</div><div class="cell">2</div><div class="cell">3</div></div>
+
+    <div class="verdict supports-grid"></div>
+    <div class="verdict" id="ua">user agent: (no JavaScript)</div>
+    <script>document.getElementById("ua").textContent = "user agent: " + navigator.userAgent;</script>
+  </body>
+</html>
