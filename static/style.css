@@ -58,12 +58,13 @@ html, body {
    other column. Only the Today column prints the labels, so this alignment is the
    only thing telling the reader what a historical value means -- do not switch
    these back to auto-sized rows, and do not let one column type gain or lose a row.
-   The eight rows are: header, date/year, temperature block, four metric rows, and
-   a trailing row that holds Today's footer and is empty elsewhere.
-   26 + 30 + 130 + (4 x 58) = 418, plus 28px of vertical padding = 446 of 480. */
+   The seven rows are: header, date/year, temperature block, then four metric rows.
+   The metric rows are 1fr rather than a fixed height so they share out whatever is
+   left and the column always bottoms out exactly on the 480px edge. 1fr is still an
+   explicit track and is identical in every column, so the alignment holds. */
 .column {
   display: grid;
-  grid-template-rows: 26px 30px 130px repeat(4, 58px) 1fr;
+  grid-template-rows: 28px 34px 150px repeat(4, 1fr);
   padding: 14px 16px;
   border-right: 2px solid #000;
   min-width: 0;
@@ -82,19 +83,22 @@ html, body {
   flex: 1;
 }
 
-/* Headers */
+/* Headers.
+   Centred in the row rather than left to sit at the top of it: a plain block would
+   place the h2 line box by its own line-height, so any difference in font size
+   between the column types would show up as headers at different heights. */
+.column-header {
+  display: flex;
+  align-items: center;
+}
+
 .column-header h2 {
   margin: 0;
-  font-size: 0.95rem;
+  font-size: 0.9rem;
   font-weight: bold;
   text-transform: uppercase;
   letter-spacing: 1px;
   white-space: nowrap;
-}
-
-.historical .column-header h2 {
-  font-size: 0.8rem;
-  letter-spacing: 0.5px;
 }
 
 /* Date for Today, bare year for the historical columns */
@@ -147,6 +151,10 @@ html, body {
   border-bottom: 1px solid #ddd;
 }
 
+.metric-row:last-child {
+  border-bottom: none;
+}
+
 /* No labels here, so the value carries the row on its own */
 .historical .metric-row {
   justify-content: center;
@@ -164,12 +172,4 @@ html, body {
 
 .today .metric-row .value {
   font-size: 1.3rem;
-}
-
-/* Footer */
-.footer {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  font-size: 0.7rem;
 }

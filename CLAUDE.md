@@ -130,9 +130,17 @@ attach `year` and `precip_ytd` to every column → render `weather.html`.
 - **Row alignment is load-bearing.** Only the Today column prints labels; the historical
   columns print values alone and are read off Today's labels by sitting at the same
   height. Every `.column` is a CSS grid sharing one explicit `grid-template-rows`
-  (`26px 30px 130px repeat(4, 58px) 1fr`), which is what guarantees that. Do not switch
-  those to auto-sized rows, and do not give one column type a row the other lacks: the
+  (`28px 34px 150px repeat(4, 1fr)`), which is what guarantees that. The metric rows are
+  `1fr` so they share out whatever height is left and the column bottoms out exactly on
+  the 480px edge; that is still an explicit, identical track, not auto sizing. Do not
+  switch them to `auto`, and do not give one column type a row the other lacks: the
   columns would drift apart and the historical numbers would lose their only label.
+- `.column-header` is `display: flex; align-items: center` rather than a plain block. A
+  block places the `h2` by its own line box, so any difference in font size between the
+  column types shows up as headers sitting at visibly different heights.
+- There is **no footer row**. "Updated hourly" used to sit at the bottom of the Today
+  column; it was stale (the display refreshes roughly every ten minutes) and it left the
+  three historical columns with ~50px of dead space, so the metric rows took it instead.
 - There are **no charts or comparison bars**. An earlier layout had them with fixed
   ceilings; `e85af59` ("Changed layout to be more e-ink friendly") removed them in favour
   of plain numbers, which hold up better on a low-refresh panel.
